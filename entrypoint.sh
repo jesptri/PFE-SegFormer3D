@@ -13,7 +13,8 @@ fi
 # 1. Preprocessing (si nécessaire)
 if [ ! -d "$PROCESSED_DATA_DIR" ] || [ -z "$(ls -A $PROCESSED_DATA_DIR)" ]; then
   echo "Running preprocessing..."
-  python /app/code/data/brats2017_seg/brats2017_raw_data/brats2017_seg_preprocess.py
+  cd /app
+  python3 /app/code/data/brats2017_seg/brats2017_raw_data/brats2017_seg_preprocess.py
 else
   echo "Preprocessed data already exists"
 fi
