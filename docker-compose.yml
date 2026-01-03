@@ -4,7 +4,11 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: pie-sxs
+    env_file:
+      - .env
     volumes:
-      - .:/app
+      - ${RAW_DATA_DIR}:/app/data/brats2017_seg/brats2017_raw_data # il faut faire un .env et mettre les variables d'env spécifiques au fichier sur lequel on doit mettre les variables
+      - ${PREPROCESSED_DATA_DIR}:/app/data/brats2017_seg/BraTS2017_Training_Data
+      # - ${RAW_DATA_DIR}:/app/outputs # pas nécessaire pour l'instant je crois
     tty: true
     stdin_open: true
