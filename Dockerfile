@@ -21,7 +21,7 @@ RUN pip install -r /app/requirements.txt
 
 COPY architectures/ /app/architectures/
 COPY augmentations/ /app/augmentations/
-COPY data/ /app/code/data/
+COPY data/ /app/data/
 
 COPY dataloaders/ /app/dataloaders/
 COPY experiments/ /app/experiments/
@@ -34,5 +34,5 @@ COPY entrypoint.sh /app/entrypoint.sh
 RUN mkdir -p "./data/brats2017_seg/brats2017_raw_data/train"
 RUN mkdir -p "./data/brats2017_seg/BraTS2017_Training_Data"
 
-ENV PYTHONPATH=/app/code
+ENV PYTHONPATH=/app/
 ENTRYPOINT ["/app/entrypoint.sh"]
