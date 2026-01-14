@@ -2,7 +2,7 @@ FROM vllm/vllm-openai:v0.9.1
 
 WORKDIR /app
 
-COPY ./requirements.txt .
+COPY ./requirements.txt /app/requirements.txt
 
 RUN apt-get update && apt-get install -y \
     build-essential \
@@ -19,24 +19,20 @@ RUN pip install -r /app/requirements.txt
 # se référer au fichier Docker.md pour plus d'infos !!!
 # COPY ./data . 
 
-COPY architectures/ /app/code/architectures/
-COPY augmentations/ /app/code/augmentations/
+COPY architectures/ /app/architectures/
+COPY augmentations/ /app/augmentations/
 COPY data/ /app/code/data/
 
-COPY dataloaders/ /app/code/dataloaders/
-COPY experiments/ /app/code/experiments/
-COPY losses/ /app/code/losses/
-COPY metrics/ /app/code/metrics/
-COPY optimizers/ /app/code/optimizers/
-COPY train_scripts/ /app/code/train_scripts/
+COPY dataloaders/ /app/dataloaders/
+COPY experiments/ /app/experiments/
+COPY losses/ /app/losses/
+COPY metrics/ /app/metrics/
+COPY optimizers/ /app/optimizers/
+COPY train_scripts/ /app/train_scripts/
 COPY entrypoint.sh /app/entrypoint.sh
 
 RUN mkdir -p "./data/brats2017_seg/brats2017_raw_data/train"
 RUN mkdir -p "./data/brats2017_seg/BraTS2017_Training_Data"
-# CMD ["./setup.bash"]
-
-# Just here there should be the way to get data from the local machine before preprocessing it
 
 ENV PYTHONPATH=/app/code
-
 ENTRYPOINT ["/app/entrypoint.sh"]
