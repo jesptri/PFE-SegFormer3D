@@ -7,7 +7,7 @@ from joblib import Parallel, delayed
 import matplotlib.pyplot as plt
 from matplotlib import animation
 from monai.data import MetaTensor
-from multiprocessing import Process, Pool
+from multiprocessing import Process, Pool, current_process
 from sklearn.preprocessing import MinMaxScaler 
 from monai.transforms import (
     Orientation,
@@ -249,6 +249,7 @@ class Brats2017Task1Preprocess:
     def process(self, idx):
         if not os.path.exists(self.save_dir):
             os.makedirs(self.save_dir)
+        print(f"Entering {idx}")
         modalities, label, case_name = self.__getitem__(idx)
         # creating the folder for the current case id
         data_save_path = os.path.join(self.save_dir, case_name)
@@ -305,7 +306,7 @@ def viz(volume_indx: int = 1, label_indx: int = 1)->None:
 if __name__ == "__main__":
     brats2017_task1_prep = Brats2017Task1Preprocess(root_dir="./",
     	train_folder_name = "train",
-        save_dir="../BraTS2017_Training_Data"
+        save_dir="../processed_data/BraTS2017_Training_Data"
     )
     # run the preprocessing pipeline 
     brats2017_task1_prep()
