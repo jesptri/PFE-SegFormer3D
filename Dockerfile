@@ -30,6 +30,8 @@ COPY metrics/ /app/metrics/
 COPY optimizers/ /app/optimizers/
 COPY train_scripts/ /app/train_scripts/
 COPY entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+
 
 RUN mkdir -p "./data/brats2017_seg/brats2017_raw_data/train"
 RUN mkdir -p "./data/brats2017_seg/BraTS2017_Training_Data"
