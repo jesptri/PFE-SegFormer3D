@@ -193,7 +193,6 @@ class Brats2017Task1Preprocess:
         case_name = self.case_name[idx]
         # BRATS_001_0000
         case_name = self.remove_case_name_artifact(case_name)
-
         
         # preprocess Flair modality
         code = self.MRI_CODE["Flair"]
@@ -227,7 +226,7 @@ class Brats2017Task1Preprocess:
         label = self.get_modality_fp(case_name, "labelsTr", code)
         label = self.preprocess_brats_modality(label, is_label=True)
         label = label.swapaxes(1, 3) # transverse plane 
-
+        
         # stack modalities (4, D, H, W)
         modalities = np.concatenate(
             (flair_transv, t1w_transv, t1gd_transv, t2w_transv),
@@ -249,7 +248,6 @@ class Brats2017Task1Preprocess:
     def process(self, idx):
         if not os.path.exists(self.save_dir):
             os.makedirs(self.save_dir)
-        print(f"Entering {idx}")
         modalities, label, case_name = self.__getitem__(idx)
         # creating the folder for the current case id
         data_save_path = os.path.join(self.save_dir, case_name)
