@@ -13,15 +13,15 @@ fi
 # 1. Preprocessing (si nécessaire)
 if [ ! -d "$PROCESSED_DATA_DIR" ] || [ -z "$(ls -A $PROCESSED_DATA_DIR)" ]; then
   echo "Running preprocessing..."
-  cd /app
-  python3 /app/data/brats2017_seg/brats2017_raw_data/brats2017_seg_preprocess.py
+  cd /app/data/brats2017_seg/brats2017_raw_data/
+  python3 brats2017_seg_preprocess.py
 else
   echo "Preprocessed data already exists"
 fi
 
-# 2. Training
-echo "Starting training..."
-accelerate launch \
-  /app/experiments/brats_2017/your_experiment/run_experiment.py
+# # 2. Training
+# echo "Starting training..."
+# accelerate launch \
+#   /app/experiments/brats_2017/your_experiment/run_experiment.py
 
-echo "Done"
+# echo "Done"
