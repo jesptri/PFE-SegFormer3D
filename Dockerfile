@@ -21,7 +21,6 @@ RUN pip install -r /app/requirements.txt
 
 COPY architectures/ /app/architectures/
 COPY augmentations/ /app/augmentations/
-COPY data/ /app/data/
 
 COPY dataloaders/ /app/dataloaders/
 COPY experiments/ /app/experiments/
