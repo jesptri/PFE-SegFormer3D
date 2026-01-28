@@ -7,8 +7,6 @@ services:
     env_file:
       - .env
     volumes:
-      - ${RAW_DATA_DIR}:/app/data/brats2017_seg/brats2017_raw_data # il faut faire un .env et mettre les variables d'env spécifiques au fichier sur lequel on doit mettre les variables
-      - ${PREPROCESSED_DATA_DIR}:/app/data/brats2017_seg/processed_data/BraTS2017_Training_Data
-      # - ${RAW_DATA_DIR}:/app/outputs # pas nécessaire pour l'instant je crois
+      - ${DATA_DIR}:/app/data/
     tty: true
     stdin_open: true
