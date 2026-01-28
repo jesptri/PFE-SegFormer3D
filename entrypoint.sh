@@ -60,3 +60,9 @@ if $DO_INFERENCE; then
 fi
 
 echo "*-* End of the entrypoint"
+
+# Evalutating
+
+# echo "Evaluating"
+# python3 eval_scripts/evaluate.py
+# echo "Done"

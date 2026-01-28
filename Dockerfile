@@ -28,7 +28,9 @@ COPY losses/ /app/losses/
 COPY metrics/ /app/metrics/
 COPY optimizers/ /app/optimizers/
 COPY train_scripts/ /app/train_scripts/
+COPY eval_scripts/ /app/eval_scripts/
 COPY entrypoint.sh /app/entrypoint.sh
+COPY best_segformer3d_brats_performance.pth /app/best_segformer3d_brats_performance.pth
 RUN chmod +x /app/entrypoint.sh
 
 ENV PYTHONPATH=/app/
