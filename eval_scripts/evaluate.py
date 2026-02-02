@@ -112,15 +112,24 @@ if __name__ == "__main__":
     this_file_dir = os.path.dirname(__file__)
     parent_dir = os.path.dirname(this_file_dir)
     
-    config_path = os.path.join(parent_dir, "experiments/brats_2017/template_experiment/config.yaml")
-    weights_path = os.path.join(parent_dir, "best_segformer3d_brats_performance.pth")
+    config_path = os.path.join(
+        parent_dir,
+        "experiments/brats_2017/template_experiment/config.yaml"
+    )
+    weights_path = os.path.join(
+        parent_dir,
+        "best_segformer3d_brats_performance.pth"
+    )
     
     # Load model
     print("Loading model...")
     model_config = load_config(config_path)
     model = build_architecture(model_config)
     model.to(device)
-    model.load_state_dict(torch.load(weights_path, map_location=device), strict=False)
+    model.load_state_dict(
+        torch.load(weights_path, map_location=device),
+        strict=False
+    )
     model.eval()
     print(f"Model loaded from: {weights_path}\n")
     
@@ -144,7 +153,10 @@ if __name__ == "__main__":
     # Combine all cases
     all_cases = np.concatenate([train_cases, val_cases])
     
-    print(f"Evaluating {len(train_cases)} training cases + {len(val_cases)} validation cases")
+    print(
+        f"Evaluating {len(train_cases)} training cases + {len(val_cases)} "
+        "validation cases"
+    )
     print(f"Total: {len(all_cases)} cases")
     print("=" * 80 + "\n")
     
@@ -152,19 +164,31 @@ if __name__ == "__main__":
     results = []
     
     with tqdm(total=len(all_cases), desc="Evaluation") as pbar:
-        for case_name in all_cases:
+        for i, case_name in enumerate(all_cases):
             # Determine if this is a training or validation case
             split = 'train' if case_name in train_cases else 'validation'
             # Load case data
-            path = os.path.join(data_path, f"BraTS2017_Training_Data/{case_name}")
+            path = os.path.join(
+                data_path,
+                f"BraTS2017_Training_Data/{case_name}"
+            )
             volume_fp = os.path.join(path, f"{case_name}_modalities.pt")
             label_fp = os.path.join(path, f"{case_name}_label.pt")
         
             try:
                 # Use weights_only=True for security and faster loading
-                # map_location='cpu' avoids unnecessary GPU allocation during loading
-                volume = torch.load(volume_fp, map_location=device, weights_only=False)
-                label = torch.load(label_fp, map_location=device, weights_only=False)
+                # map_location='cpu' avoids unnecessary GPU allocation during 
+                # loading
+                volume = torch.load(
+                    volume_fp,
+                    map_location=device,
+                    weights_only=False
+                )
+                label = torch.load(
+                    label_fp,
+                    map_location=device,
+                    weights_only=False
+                )
             
                 # Convert to float32 tensors efficiently
                 if not isinstance(volume, torch.Tensor):
@@ -188,7 +212,11 @@ if __name__ == "__main__":
             label_tensor = data["label"].unsqueeze(0)
             
             # Evaluate
-            dice_scores = evaluator.evaluate_case(input_tensor, label_tensor, model)
+            dice_scores = evaluator.evaluate_case(
+                input_tensor,
+                label_tensor,
+                model
+            )
             
             # Store results
             results.append({
@@ -204,6 +232,9 @@ if __name__ == "__main__":
                 'ET': f"{dice_scores['ET']:.1f}",
                 'Avg': f"{dice_scores['average']:.1f}"
             })
+
+            # if (i + 1) % 10 == 0 or (i + 1) == len(all_cases):
+            #     print(f"Evaluated {i + 1}/{len(all_cases)} cases")
             pbar.update(1)
     
     # Create results DataFrame
@@ -213,115 +244,8 @@ if __name__ == "__main__":
     train_results = results_df[results_df['split'] == 'train']
     val_results = results_df[results_df['split'] == 'validation']
     
-    # Print summary statistics
-    print("\n" + "=" * 80)
-    print("EVALUATION RESULTS - SUMMARY STATISTICS")
-    print("=" * 80 + "\n")
-    
-    # Overall statistics
-    print("OVERALL (Train + Validation):")
-    print("-" * 50)
-    print(f"{'Metric':<20} {'Mean':<12} {'Std':<12} {'Min':<12} {'Max':<12}")
-    print("-" * 50)
-    
-    for metric in ['TC', 'WT', 'ET', 'average']:
-        mean_val = results_df[metric].mean()
-        std_val = results_df[metric].std()
-        min_val = results_df[metric].min()
-        max_val = results_df[metric].max()
-        
-        label = {
-            'TC': 'Tumor Core',
-            'WT': 'Whole Tumor',
-            'ET': 'Enhancing Tumor',
-            'average': 'Average'
-        }[metric]
-        
-        print(f"{label:<20} {mean_val:>6.2f} ± {std_val:<5.2f} {min_val:>6.2f}      {max_val:>6.2f}")
-    
-    print()
-    
-    # Training set statistics
-    print("TRAINING SET:")
-    print("-" * 50)
-    print(f"{'Metric':<20} {'Mean':<12} {'Std':<12} {'Min':<12} {'Max':<12}")
-    print("-" * 50)
-    
-    for metric in ['TC', 'WT', 'ET', 'average']:
-        mean_val = train_results[metric].mean()
-        std_val = train_results[metric].std()
-        min_val = train_results[metric].min()
-        max_val = train_results[metric].max()
-        
-        label = {
-            'TC': 'Tumor Core',
-            'WT': 'Whole Tumor',
-            'ET': 'Enhancing Tumor',
-            'average': 'Average'
-        }[metric]
-        
-        print(f"{label:<20} {mean_val:>6.2f} ± {std_val:<5.2f} {min_val:>6.2f}      {max_val:>6.2f}")
-    
-    print()
-    
-    # Validation set statistics
-    print("VALIDATION SET:")
-    print("-" * 50)
-    print(f"{'Metric':<20} {'Mean':<12} {'Std':<12} {'Min':<12} {'Max':<12}")
-    print("-" * 50)
-    
-    for metric in ['TC', 'WT', 'ET', 'average']:
-        mean_val = val_results[metric].mean()
-        std_val = val_results[metric].std()
-        min_val = val_results[metric].min()
-        max_val = val_results[metric].max()
-        
-        label = {
-            'TC': 'Tumor Core',
-            'WT': 'Whole Tumor',
-            'ET': 'Enhancing Tumor',
-            'average': 'Average'
-        }[metric]
-        
-        print(f"{label:<20} {mean_val:>6.2f} ± {std_val:<5.2f} {min_val:>6.2f}      {max_val:>6.2f}")
-    
-    print("-" * 50)
-    
-    # Best and worst cases
-    best_idx = results_df['average'].idxmax()
-    worst_idx = results_df['average'].idxmin()
-    
-    print(f"\nBest case (Overall):  {results_df.loc[best_idx, 'case_name']} [{results_df.loc[best_idx, 'split']}]")
-    print(f"  TC: {results_df.loc[best_idx, 'TC']:.2f}%, "
-          f"WT: {results_df.loc[best_idx, 'WT']:.2f}%, "
-          f"ET: {results_df.loc[best_idx, 'ET']:.2f}%, "
-          f"Avg: {results_df.loc[best_idx, 'average']:.2f}%")
-    
-    print(f"\nWorst case (Overall): {results_df.loc[worst_idx, 'case_name']} [{results_df.loc[worst_idx, 'split']}]")
-    print(f"  TC: {results_df.loc[worst_idx, 'TC']:.2f}%, "
-          f"WT: {results_df.loc[worst_idx, 'WT']:.2f}%, "
-          f"ET: {results_df.loc[worst_idx, 'ET']:.2f}%, "
-          f"Avg: {results_df.loc[worst_idx, 'average']:.2f}%")
-    
-    # Best and worst for validation set only
-    if len(val_results) > 0:
-        best_val_idx = val_results['average'].idxmax()
-        worst_val_idx = val_results['average'].idxmin()
-        
-        print(f"\nBest case (Validation only):  {val_results.loc[best_val_idx, 'case_name']}")
-        print(f"  TC: {val_results.loc[best_val_idx, 'TC']:.2f}%, "
-              f"WT: {val_results.loc[best_val_idx, 'WT']:.2f}%, "
-              f"ET: {val_results.loc[best_val_idx, 'ET']:.2f}%, "
-              f"Avg: {val_results.loc[best_val_idx, 'average']:.2f}%")
-        
-        print(f"\nWorst case (Validation only): {val_results.loc[worst_val_idx, 'case_name']}")
-        print(f"  TC: {val_results.loc[worst_val_idx, 'TC']:.2f}%, "
-              f"WT: {val_results.loc[worst_val_idx, 'WT']:.2f}%, "
-              f"ET: {val_results.loc[worst_val_idx, 'ET']:.2f}%, "
-              f"Avg: {val_results.loc[worst_val_idx, 'average']:.2f}%")
-    
     # Save results
-    output_dir = os.path.join(this_file_dir, 'evaluation_results')
+    output_dir = os.path.join("./data", 'evaluation_results')
     os.makedirs(output_dir, exist_ok=True)
     
     # Save complete results
@@ -334,9 +258,135 @@ if __name__ == "__main__":
     train_results.to_csv(train_csv_path, index=False)
     val_results.to_csv(val_csv_path, index=False)
     
-    print(f"\n{'=' * 80}")
-    print(f"Results saved to:")
-    print(f"  - All cases:        {csv_path}")
-    print(f"  - Training set:     {train_csv_path}")
-    print(f"  - Validation set:   {val_csv_path}")
-    print("=" * 80)
+    # Create summary text file
+    summary_path = os.path.join(output_dir, 'evaluation_summary.txt')
+    
+    with open(summary_path, 'w') as f:
+        # Write summary statistics
+        f.write("=" * 80 + "\n")
+        f.write("EVALUATION RESULTS - SUMMARY STATISTICS\n")
+        f.write("=" * 80 + "\n\n")
+        
+        # Overall statistics
+        f.write("OVERALL (Train + Validation):\n")
+        f.write("-" * 50 + "\n")
+        f.write(
+            f"{'Metric':<20} {'Mean':<12} {'Std':<12} {'Min':<12} {'Max':<12}\n"
+        )
+        f.write("-" * 50 + "\n")
+        
+        for metric in ['TC', 'WT', 'ET', 'average']:
+            mean_val = results_df[metric].mean()
+            std_val = results_df[metric].std()
+            min_val = results_df[metric].min()
+            max_val = results_df[metric].max()
+            
+            label = {
+                'TC': 'Tumor Core',
+                'WT': 'Whole Tumor',
+                'ET': 'Enhancing Tumor',
+                'average': 'Average'
+            }[metric]
+            
+            f.write(
+                f"{label:<20} {mean_val:>6.2f} ± {std_val:<5.2f} {min_val:>6.2f}      {max_val:>6.2f}\n")
+        
+        f.write("\n")
+        
+        # Training set statistics
+        f.write("TRAINING SET:\n")
+        f.write("-" * 50 + "\n")
+        f.write(
+            f"{'Metric':<20} {'Mean':<12} {'Std':<12} {'Min':<12} {'Max':<12}\n"
+        )
+        f.write("-" * 50 + "\n")
+        
+        for metric in ['TC', 'WT', 'ET', 'average']:
+            mean_val = train_results[metric].mean()
+            std_val = train_results[metric].std()
+            min_val = train_results[metric].min()
+            max_val = train_results[metric].max()
+            
+            label = {
+                'TC': 'Tumor Core',
+                'WT': 'Whole Tumor',
+                'ET': 'Enhancing Tumor',
+                'average': 'Average'
+            }[metric]
+            
+            f.write(
+                f"{label:<20} {mean_val:>6.2f} ± {std_val:<5.2f} {min_val:>6.2f}      {max_val:>6.2f}\n"
+            )
+        
+        f.write("\n")
+        
+        # Validation set statistics
+        f.write("VALIDATION SET:\n")
+        f.write("-" * 50 + "\n")
+        f.write(
+            f"{'Metric':<20} {'Mean':<12} {'Std':<12} {'Min':<12} {'Max':<12}\n"
+        )
+        f.write("-" * 50 + "\n")
+        
+        for metric in ['TC', 'WT', 'ET', 'average']:
+            mean_val = val_results[metric].mean()
+            std_val = val_results[metric].std()
+            min_val = val_results[metric].min()
+            max_val = val_results[metric].max()
+            
+            label = {
+                'TC': 'Tumor Core',
+                'WT': 'Whole Tumor',
+                'ET': 'Enhancing Tumor',
+                'average': 'Average'
+            }[metric]
+            
+            f.write(
+                f"{label:<20} {mean_val:>6.2f} ± {std_val:<5.2f} {min_val:>6.2f}      {max_val:>6.2f}\n"
+            )
+        
+        f.write("-" * 50 + "\n")
+        
+        # Best and worst cases
+        best_idx = results_df['average'].idxmax()
+        worst_idx = results_df['average'].idxmin()
+        
+        f.write(f"\nBest case (Overall):  {results_df.loc[best_idx, 'case_name']} [{results_df.loc[best_idx, 'split']}]\n")
+        f.write(f"  TC: {results_df.loc[best_idx, 'TC']:.2f}%, "
+                f"WT: {results_df.loc[best_idx, 'WT']:.2f}%, "
+                f"ET: {results_df.loc[best_idx, 'ET']:.2f}%, "
+                f"Avg: {results_df.loc[best_idx, 'average']:.2f}%\n")
+        
+        f.write(f"\nWorst case (Overall): {results_df.loc[worst_idx, 'case_name']} [{results_df.loc[worst_idx, 'split']}]\n")
+        f.write(f"  TC: {results_df.loc[worst_idx, 'TC']:.2f}%, "
+                f"WT: {results_df.loc[worst_idx, 'WT']:.2f}%, "
+                f"ET: {results_df.loc[worst_idx, 'ET']:.2f}%, "
+                f"Avg: {results_df.loc[worst_idx, 'average']:.2f}%\n")
+        
+        # Best and worst for validation set only
+        if len(val_results) > 0:
+            best_val_idx = val_results['average'].idxmax()
+            worst_val_idx = val_results['average'].idxmin()
+            
+            f.write(f"\nBest case (Validation only):  {val_results.loc[best_val_idx, 'case_name']}\n")
+            f.write(f"  TC: {val_results.loc[best_val_idx, 'TC']:.2f}%, "
+                    f"WT: {val_results.loc[best_val_idx, 'WT']:.2f}%, "
+                    f"ET: {val_results.loc[best_val_idx, 'ET']:.2f}%, "
+                    f"Avg: {val_results.loc[best_val_idx, 'average']:.2f}%\n")
+            
+            f.write(f"\nWorst case (Validation only): {val_results.loc[worst_val_idx, 'case_name']}\n")
+            f.write(f"  TC: {val_results.loc[worst_val_idx, 'TC']:.2f}%, "
+                    f"WT: {val_results.loc[worst_val_idx, 'WT']:.2f}%, "
+                    f"ET: {val_results.loc[worst_val_idx, 'ET']:.2f}%, "
+                    f"Avg: {val_results.loc[worst_val_idx, 'average']:.2f}%\n")
+        
+        f.write("\n" + "=" * 80 + "\n")
+        f.write("Results saved to:\n")
+        f.write(f"  - All cases:        {csv_path}\n")
+        f.write(f"  - Training set:     {train_csv_path}\n")
+        f.write(f"  - Validation set:   {val_csv_path}\n")
+        f.write(f"  - Summary:          {summary_path}\n")
+        f.write("=" * 80 + "\n")
+    
+    print(f"\nEvaluation complete! Results saved to: {output_dir}")
+    print(f"Summary report: {summary_path}")
