@@ -1,3 +1,4 @@
+import argparse
 import os
 import torch
 import nibabel
@@ -302,10 +303,17 @@ def viz(volume_indx: int = 1, label_indx: int = 1)->None:
 
 
 if __name__ == "__main__":
-    brats2017_task1_prep = Brats2017Task1Preprocess(root_dir="./",
-    	train_folder_name = "train",
-        save_dir="../processed_data/BraTS2017_Training_Data"
+    parser = argparse.ArgumentParser(description="Segformer 3D preprocessing script")
+    parser.add_argument("-r", "--rawdir", required=True, type=str, help="Path for the raw data folder from project root.")
+    parser.add_argument("-t", "--traindir", required=True, type=str, help="Path for the train data folder from rawdir.")
+    parser.add_argument("-o", "--outputdir", required=True, type=str, help="Path for the output folder from project root.")
+    args = parser.parse_args()
+
+    brats2017_task1_prep = Brats2017Task1Preprocess(root_dir=args.rawdir,
+    	train_folder_name = args.traindir,
+        save_dir=args.outputdir
     )
+
     # run the preprocessing pipeline 
     brats2017_task1_prep()
 
