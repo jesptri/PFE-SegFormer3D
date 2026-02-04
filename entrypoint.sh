@@ -7,7 +7,7 @@ DO_TRAINING=false
 DO_INFERENCE=false
 DO_EVALUATION=false
 
-while getopts "ptih" opt; do
+while getopts "ptieh" opt; do
   case "$opt" in
     p) DO_PREPROCESSING=true ;;
     t) DO_TRAINING=true ;;
@@ -66,4 +66,5 @@ fi
 if $DO_EVALUATION; then
   echo "*-* Launching the evaluation... (only pre-trained model for now)"
   python3 $ROOT/eval_scripts/evaluate.py 
+fi
 echo "*-* End of the entrypoint"
