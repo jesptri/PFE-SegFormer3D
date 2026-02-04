@@ -46,7 +46,6 @@ if $DO_PREPROCESSING; then
   if [ ! -d "$PROCESSED_DATA_DIR" ] || [ -z "$(ls -A $PROCESSED_DATA_DIR)" ]; then
     echo "*-* Running preprocessing script..."
     python3 $RAW_DATA_DIR/brats2017_seg_preprocess.py -r $RAW_DATA_DIR -t $TRAIN_DATA_DIR -o $PROCESSED_DATA_DIR
-    cd $ROOT
   else
     echo "*-* Preprocessed data already exists"
   fi
