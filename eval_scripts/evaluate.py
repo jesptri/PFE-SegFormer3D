@@ -104,6 +104,25 @@ class EvaluationModule:
         }
 
 if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser(
+        description="Evaluate SegFormer3D model on BraTS 2017 dataset"
+    )
+    parser.add_argument(
+        '--eval_all',
+        action='store_true',
+        default=False,
+        help="Evaluate on all training and validation cases"
+    )
+    parser.add_argument(
+        "--case_number",
+        type=int,
+        default=1,
+        help="Case number of the patient to visualize (1-484)",
+    )
+    args = parser.parse_args()
+    eval_all = args.eval_all
+    case_number = args.case_number
     # Device setup
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
@@ -139,254 +158,319 @@ if __name__ == "__main__":
         sw_batch_size=4
     )
     
-    # Load validation and training cases
-    data_path = os.path.join(parent_dir, 'data', 'brats2017_seg')
-    
-    val_csv_path = os.path.join(data_path, 'validation.csv')
-    val_df = pd.read_csv(val_csv_path)
-    val_cases = val_df['case_name'].to_numpy()
-    
-    train_csv_path = os.path.join(data_path, 'train.csv')
-    train_df = pd.read_csv(train_csv_path)
-    train_cases = train_df['case_name'].to_numpy()
-    
-    # Combine all cases
-    all_cases = np.concatenate([train_cases, val_cases])
-    
-    print(
-        f"Evaluating {len(train_cases)} training cases + {len(val_cases)} "
-        "validation cases"
-    )
-    print(f"Total: {len(all_cases)} cases")
-    print("=" * 80 + "\n")
-    
-    # Evaluate all cases
-    results = []
-    
-    with tqdm(total=len(all_cases), desc="Evaluation") as pbar:
-        for i, case_name in enumerate(all_cases):
-            # Determine if this is a training or validation case
-            split = 'train' if case_name in train_cases else 'validation'
-            # Load case data
-            path = os.path.join(
-                data_path,
-                f"BraTS2017_Training_Data/{case_name}"
-            )
-            volume_fp = os.path.join(path, f"{case_name}_modalities.pt")
-            label_fp = os.path.join(path, f"{case_name}_label.pt")
+    if eval_all :
+        # Load validation and training cases
+        data_path = os.path.join(parent_dir, 'data', 'brats2017_seg')
         
-            try:
-                # Use weights_only=True for security and faster loading
-                # map_location='cpu' avoids unnecessary GPU allocation during 
-                # loading
-                volume = torch.load(
-                    volume_fp,
-                    map_location=device,
-                    weights_only=False
+        val_csv_path = os.path.join(data_path, 'validation.csv')
+        val_df = pd.read_csv(val_csv_path)
+        val_cases = val_df['case_name'].to_numpy()
+        
+        train_csv_path = os.path.join(data_path, 'train.csv')
+        train_df = pd.read_csv(train_csv_path)
+        train_cases = train_df['case_name'].to_numpy()
+        
+        # Combine all cases
+        all_cases = np.concatenate([train_cases, val_cases])
+        
+        print(
+            f"Evaluating {len(train_cases)} training cases + {len(val_cases)} "
+            "validation cases"
+        )
+        print(f"Total: {len(all_cases)} cases")
+        print("=" * 80 + "\n")
+        
+        # Evaluate all cases
+        results = []
+        
+        with tqdm(total=len(all_cases), desc="Evaluation") as pbar:
+            for i, case_name in enumerate(all_cases):
+                # Determine if this is a training or validation case
+                split = 'train' if case_name in train_cases else 'validation'
+                # Load case data
+                path = os.path.join(
+                    data_path,
+                    f"BraTS2017_Training_Data/{case_name}"
                 )
-                label = torch.load(
-                    label_fp,
-                    map_location=device,
-                    weights_only=False
-                )
+                volume_fp = os.path.join(path, f"{case_name}_modalities.pt")
+                label_fp = os.path.join(path, f"{case_name}_label.pt")
             
-                # Convert to float32 tensors efficiently
-                if not isinstance(volume, torch.Tensor):
-                    volume = torch.from_numpy(volume)
-                if not isinstance(label, torch.Tensor):
-                    label = torch.from_numpy(label)
+                try:
+                    # Use weights_only=True for security and faster loading
+                    # map_location='cpu' avoids unnecessary GPU allocation during 
+                    # loading
+                    volume = torch.load(
+                        volume_fp,
+                        map_location=device,
+                        weights_only=False
+                    )
+                    label = torch.load(
+                        label_fp,
+                        map_location=device,
+                        weights_only=False
+                    )
                 
-                data = {
-                    "image": volume.float(),
-                    "label": label.float()
-                }
-            except Exception as e:
-                warnings.warn(f"Error loading data at ({case_name}): {str(e)}")
-                # Return a fallback sample or re-raise
-                raise
+                    # Convert to float32 tensors efficiently
+                    if not isinstance(volume, torch.Tensor):
+                        volume = torch.from_numpy(volume)
+                    if not isinstance(label, torch.Tensor):
+                        label = torch.from_numpy(label)
+                    
+                    data = {
+                        "image": volume.float(),
+                        "label": label.float()
+                    }
+                except Exception as e:
+                    warnings.warn(f"Error loading data at ({case_name}): {str(e)}")
+                    # Return a fallback sample or re-raise
+                    raise
 
 
 
-            # Convert to tensors and add batch dimension
-            input_tensor = data["image"].unsqueeze(0)
-            label_tensor = data["label"].unsqueeze(0)
-            
-            # Evaluate
-            dice_scores = evaluator.evaluate_case(
-                input_tensor,
-                label_tensor,
-                model
-            )
-            
-            # Store results
-            results.append({
-                'case_name': case_name,
-                'split': split,
-                **dice_scores
-            })
-            
-            # Update progress
-            pbar.set_postfix({
-                'TC': f"{dice_scores['TC']:.1f}",
-                'WT': f"{dice_scores['WT']:.1f}",
-                'ET': f"{dice_scores['ET']:.1f}",
-                'Avg': f"{dice_scores['average']:.1f}"
-            })
+                # Convert to tensors and add batch dimension
+                input_tensor = data["image"].unsqueeze(0)
+                label_tensor = data["label"].unsqueeze(0)
+                
+                # Evaluate
+                dice_scores = evaluator.evaluate_case(
+                    input_tensor,
+                    label_tensor,
+                    model
+                )
+                
+                # Store results
+                results.append({
+                    'case_name': case_name,
+                    'split': split,
+                    **dice_scores
+                })
+                
+                # Update progress
+                pbar.set_postfix({
+                    'TC': f"{dice_scores['TC']:.1f}",
+                    'WT': f"{dice_scores['WT']:.1f}",
+                    'ET': f"{dice_scores['ET']:.1f}",
+                    'Avg': f"{dice_scores['average']:.1f}"
+                })
 
-            # if (i + 1) % 10 == 0 or (i + 1) == len(all_cases):
-            #     print(f"Evaluated {i + 1}/{len(all_cases)} cases")
-            pbar.update(1)
-    
-    # Create results DataFrame
-    results_df = pd.DataFrame(results)
-    
-    # Separate train and validation results
-    train_results = results_df[results_df['split'] == 'train']
-    val_results = results_df[results_df['split'] == 'validation']
-    
-    # Save results
-    output_dir = os.path.join("./data", 'evaluation_results')
-    os.makedirs(output_dir, exist_ok=True)
-    
-    # Save complete results
-    csv_path = os.path.join(output_dir, 'all_scores.csv')
-    results_df.to_csv(csv_path, index=False)
-    
-    # Save separate files for train and validation
-    train_csv_path = os.path.join(output_dir, 'train_scores.csv')
-    val_csv_path = os.path.join(output_dir, 'validation_scores.csv')
-    train_results.to_csv(train_csv_path, index=False)
-    val_results.to_csv(val_csv_path, index=False)
-    
-    # Create summary text file
-    summary_path = os.path.join(output_dir, 'evaluation_summary.txt')
-    
-    with open(summary_path, 'w') as f:
-        # Write summary statistics
-        f.write("=" * 80 + "\n")
-        f.write("EVALUATION RESULTS - SUMMARY STATISTICS\n")
-        f.write("=" * 80 + "\n\n")
+                # if (i + 1) % 10 == 0 or (i + 1) == len(all_cases):
+                #     print(f"Evaluated {i + 1}/{len(all_cases)} cases")
+                pbar.update(1)
         
-        # Overall statistics
-        f.write("OVERALL (Train + Validation):\n")
-        f.write("-" * 50 + "\n")
-        f.write(
-            f"{'Metric':<20} {'Mean':<12} {'Std':<12} {'Min':<12} {'Max':<12}\n"
-        )
-        f.write("-" * 50 + "\n")
+        # Create results DataFrame
+        results_df = pd.DataFrame(results)
         
-        for metric in ['TC', 'WT', 'ET', 'average']:
-            mean_val = results_df[metric].mean()
-            std_val = results_df[metric].std()
-            min_val = results_df[metric].min()
-            max_val = results_df[metric].max()
+        # Separate train and validation results
+        train_results = results_df[results_df['split'] == 'train']
+        val_results = results_df[results_df['split'] == 'validation']
+        
+        # Save results
+        output_dir = os.path.join("./data", 'evaluation_results')
+        os.makedirs(output_dir, exist_ok=True)
+        
+        # Save complete results
+        csv_path = os.path.join(output_dir, 'all_scores.csv')
+        results_df.to_csv(csv_path, index=False)
+        
+        # Save separate files for train and validation
+        train_csv_path = os.path.join(output_dir, 'train_scores.csv')
+        val_csv_path = os.path.join(output_dir, 'validation_scores.csv')
+        train_results.to_csv(train_csv_path, index=False)
+        val_results.to_csv(val_csv_path, index=False)
+        
+        # Create summary text file
+        summary_path = os.path.join(output_dir, 'evaluation_summary.txt')
+        
+        with open(summary_path, 'w') as f:
+            # Write summary statistics
+            f.write("=" * 80 + "\n")
+            f.write("EVALUATION RESULTS - SUMMARY STATISTICS\n")
+            f.write("=" * 80 + "\n\n")
             
-            label = {
-                'TC': 'Tumor Core',
-                'WT': 'Whole Tumor',
-                'ET': 'Enhancing Tumor',
-                'average': 'Average'
-            }[metric]
-            
+            # Overall statistics
+            f.write("OVERALL (Train + Validation):\n")
+            f.write("-" * 50 + "\n")
             f.write(
-                f"{label:<20} {mean_val:>6.2f} ± {std_val:<5.2f} {min_val:>6.2f}      {max_val:>6.2f}\n")
-        
-        f.write("\n")
-        
-        # Training set statistics
-        f.write("TRAINING SET:\n")
-        f.write("-" * 50 + "\n")
-        f.write(
-            f"{'Metric':<20} {'Mean':<12} {'Std':<12} {'Min':<12} {'Max':<12}\n"
-        )
-        f.write("-" * 50 + "\n")
-        
-        for metric in ['TC', 'WT', 'ET', 'average']:
-            mean_val = train_results[metric].mean()
-            std_val = train_results[metric].std()
-            min_val = train_results[metric].min()
-            max_val = train_results[metric].max()
-            
-            label = {
-                'TC': 'Tumor Core',
-                'WT': 'Whole Tumor',
-                'ET': 'Enhancing Tumor',
-                'average': 'Average'
-            }[metric]
-            
-            f.write(
-                f"{label:<20} {mean_val:>6.2f} ± {std_val:<5.2f} {min_val:>6.2f}      {max_val:>6.2f}\n"
+                f"{'Metric':<20} {'Mean':<12} {'Std':<12} {'Min':<12} {'Max':<12}\n"
             )
-        
-        f.write("\n")
-        
-        # Validation set statistics
-        f.write("VALIDATION SET:\n")
-        f.write("-" * 50 + "\n")
-        f.write(
-            f"{'Metric':<20} {'Mean':<12} {'Std':<12} {'Min':<12} {'Max':<12}\n"
-        )
-        f.write("-" * 50 + "\n")
-        
-        for metric in ['TC', 'WT', 'ET', 'average']:
-            mean_val = val_results[metric].mean()
-            std_val = val_results[metric].std()
-            min_val = val_results[metric].min()
-            max_val = val_results[metric].max()
+            f.write("-" * 50 + "\n")
             
-            label = {
-                'TC': 'Tumor Core',
-                'WT': 'Whole Tumor',
-                'ET': 'Enhancing Tumor',
-                'average': 'Average'
-            }[metric]
+            for metric in ['TC', 'WT', 'ET', 'average']:
+                mean_val = results_df[metric].mean()
+                std_val = results_df[metric].std()
+                min_val = results_df[metric].min()
+                max_val = results_df[metric].max()
+                
+                label = {
+                    'TC': 'Tumor Core',
+                    'WT': 'Whole Tumor',
+                    'ET': 'Enhancing Tumor',
+                    'average': 'Average'
+                }[metric]
+                
+                f.write(
+                    f"{label:<20} {mean_val:>6.2f} ± {std_val:<5.2f} {min_val:>6.2f}      {max_val:>6.2f}\n")
             
+            f.write("\n")
+            
+            # Training set statistics
+            f.write("TRAINING SET:\n")
+            f.write("-" * 50 + "\n")
             f.write(
-                f"{label:<20} {mean_val:>6.2f} ± {std_val:<5.2f} {min_val:>6.2f}      {max_val:>6.2f}\n"
+                f"{'Metric':<20} {'Mean':<12} {'Std':<12} {'Min':<12} {'Max':<12}\n"
             )
-        
-        f.write("-" * 50 + "\n")
-        
-        # Best and worst cases
-        best_idx = results_df['average'].idxmax()
-        worst_idx = results_df['average'].idxmin()
-        
-        f.write(f"\nBest case (Overall):  {results_df.loc[best_idx, 'case_name']} [{results_df.loc[best_idx, 'split']}]\n")
-        f.write(f"  TC: {results_df.loc[best_idx, 'TC']:.2f}%, "
-                f"WT: {results_df.loc[best_idx, 'WT']:.2f}%, "
-                f"ET: {results_df.loc[best_idx, 'ET']:.2f}%, "
-                f"Avg: {results_df.loc[best_idx, 'average']:.2f}%\n")
-        
-        f.write(f"\nWorst case (Overall): {results_df.loc[worst_idx, 'case_name']} [{results_df.loc[worst_idx, 'split']}]\n")
-        f.write(f"  TC: {results_df.loc[worst_idx, 'TC']:.2f}%, "
-                f"WT: {results_df.loc[worst_idx, 'WT']:.2f}%, "
-                f"ET: {results_df.loc[worst_idx, 'ET']:.2f}%, "
-                f"Avg: {results_df.loc[worst_idx, 'average']:.2f}%\n")
-        
-        # Best and worst for validation set only
-        if len(val_results) > 0:
-            best_val_idx = val_results['average'].idxmax()
-            worst_val_idx = val_results['average'].idxmin()
+            f.write("-" * 50 + "\n")
             
-            f.write(f"\nBest case (Validation only):  {val_results.loc[best_val_idx, 'case_name']}\n")
-            f.write(f"  TC: {val_results.loc[best_val_idx, 'TC']:.2f}%, "
-                    f"WT: {val_results.loc[best_val_idx, 'WT']:.2f}%, "
-                    f"ET: {val_results.loc[best_val_idx, 'ET']:.2f}%, "
-                    f"Avg: {val_results.loc[best_val_idx, 'average']:.2f}%\n")
+            for metric in ['TC', 'WT', 'ET', 'average']:
+                mean_val = train_results[metric].mean()
+                std_val = train_results[metric].std()
+                min_val = train_results[metric].min()
+                max_val = train_results[metric].max()
+                
+                label = {
+                    'TC': 'Tumor Core',
+                    'WT': 'Whole Tumor',
+                    'ET': 'Enhancing Tumor',
+                    'average': 'Average'
+                }[metric]
+                
+                f.write(
+                    f"{label:<20} {mean_val:>6.2f} ± {std_val:<5.2f} {min_val:>6.2f}      {max_val:>6.2f}\n"
+                )
             
-            f.write(f"\nWorst case (Validation only): {val_results.loc[worst_val_idx, 'case_name']}\n")
-            f.write(f"  TC: {val_results.loc[worst_val_idx, 'TC']:.2f}%, "
-                    f"WT: {val_results.loc[worst_val_idx, 'WT']:.2f}%, "
-                    f"ET: {val_results.loc[worst_val_idx, 'ET']:.2f}%, "
-                    f"Avg: {val_results.loc[worst_val_idx, 'average']:.2f}%\n")
+            f.write("\n")
+            
+            # Validation set statistics
+            f.write("VALIDATION SET:\n")
+            f.write("-" * 50 + "\n")
+            f.write(
+                f"{'Metric':<20} {'Mean':<12} {'Std':<12} {'Min':<12} {'Max':<12}\n"
+            )
+            f.write("-" * 50 + "\n")
+            
+            for metric in ['TC', 'WT', 'ET', 'average']:
+                mean_val = val_results[metric].mean()
+                std_val = val_results[metric].std()
+                min_val = val_results[metric].min()
+                max_val = val_results[metric].max()
+                
+                label = {
+                    'TC': 'Tumor Core',
+                    'WT': 'Whole Tumor',
+                    'ET': 'Enhancing Tumor',
+                    'average': 'Average'
+                }[metric]
+                
+                f.write(
+                    f"{label:<20} {mean_val:>6.2f} ± {std_val:<5.2f} {min_val:>6.2f}      {max_val:>6.2f}\n"
+                )
+            
+            f.write("-" * 50 + "\n")
+            
+            # Best and worst cases
+            best_idx = results_df['average'].idxmax()
+            worst_idx = results_df['average'].idxmin()
+            
+            f.write(f"\nBest case (Overall):  {results_df.loc[best_idx, 'case_name']} [{results_df.loc[best_idx, 'split']}]\n")
+            f.write(f"  TC: {results_df.loc[best_idx, 'TC']:.2f}%, "
+                    f"WT: {results_df.loc[best_idx, 'WT']:.2f}%, "
+                    f"ET: {results_df.loc[best_idx, 'ET']:.2f}%, "
+                    f"Avg: {results_df.loc[best_idx, 'average']:.2f}%\n")
+            
+            f.write(f"\nWorst case (Overall): {results_df.loc[worst_idx, 'case_name']} [{results_df.loc[worst_idx, 'split']}]\n")
+            f.write(f"  TC: {results_df.loc[worst_idx, 'TC']:.2f}%, "
+                    f"WT: {results_df.loc[worst_idx, 'WT']:.2f}%, "
+                    f"ET: {results_df.loc[worst_idx, 'ET']:.2f}%, "
+                    f"Avg: {results_df.loc[worst_idx, 'average']:.2f}%\n")
+            
+            # Best and worst for validation set only
+            if len(val_results) > 0:
+                best_val_idx = val_results['average'].idxmax()
+                worst_val_idx = val_results['average'].idxmin()
+                
+                f.write(f"\nBest case (Validation only):  {val_results.loc[best_val_idx, 'case_name']}\n")
+                f.write(f"  TC: {val_results.loc[best_val_idx, 'TC']:.2f}%, "
+                        f"WT: {val_results.loc[best_val_idx, 'WT']:.2f}%, "
+                        f"ET: {val_results.loc[best_val_idx, 'ET']:.2f}%, "
+                        f"Avg: {val_results.loc[best_val_idx, 'average']:.2f}%\n")
+                
+                f.write(f"\nWorst case (Validation only): {val_results.loc[worst_val_idx, 'case_name']}\n")
+                f.write(f"  TC: {val_results.loc[worst_val_idx, 'TC']:.2f}%, "
+                        f"WT: {val_results.loc[worst_val_idx, 'WT']:.2f}%, "
+                        f"ET: {val_results.loc[worst_val_idx, 'ET']:.2f}%, "
+                        f"Avg: {val_results.loc[worst_val_idx, 'average']:.2f}%\n")
+            
+            f.write("\n" + "=" * 80 + "\n")
+            f.write("Results saved to:\n")
+            f.write(f"  - All cases:        {csv_path}\n")
+            f.write(f"  - Training set:     {train_csv_path}\n")
+            f.write(f"  - Validation set:   {val_csv_path}\n")
+            f.write(f"  - Summary:          {summary_path}\n")
+            f.write("=" * 80 + "\n")
         
-        f.write("\n" + "=" * 80 + "\n")
-        f.write("Results saved to:\n")
-        f.write(f"  - All cases:        {csv_path}\n")
-        f.write(f"  - Training set:     {train_csv_path}\n")
-        f.write(f"  - Validation set:   {val_csv_path}\n")
-        f.write(f"  - Summary:          {summary_path}\n")
-        f.write("=" * 80 + "\n")
+        print(f"\nEvaluation complete! Results saved to: {output_dir}")
+        print(f"Summary report: {summary_path}")
     
-    print(f"\nEvaluation complete! Results saved to: {output_dir}")
-    print(f"Summary report: {summary_path}")
+    else :
+
+        data_path = os.path.join(parent_dir, 'data', 'brats2017_seg')
+        # case number should be between 1 and 484 and translated to BRATS_xxx format
+        case_name = f"BRATS_{case_number:03d}"
+        print(f"Evaluating case number: {case_name}\n")
+
+
+        # Load case data
+        path = os.path.join(
+            data_path,
+            f"BraTS2017_Training_Data/{case_name}"
+        )
+        volume_fp = os.path.join(path, f"{case_name}_modalities.pt")
+        label_fp = os.path.join(path, f"{case_name}_label.pt")
+    
+        try:
+            # Use weights_only=True for security and faster loading
+            # map_location='cpu' avoids unnecessary GPU allocation during 
+            # loading
+            volume = torch.load(
+                volume_fp,
+                map_location=device,
+                weights_only=False
+            )
+            label = torch.load(
+                label_fp,
+                map_location=device,
+                weights_only=False
+            )
+        
+            # Convert to float32 tensors efficiently
+            if not isinstance(volume, torch.Tensor):
+                volume = torch.from_numpy(volume)
+            if not isinstance(label, torch.Tensor):
+                label = torch.from_numpy(label)
+            
+            data = {
+                "image": volume.float(),
+                "label": label.float()
+            }
+        except Exception as e:
+            warnings.warn(f"Error loading data at ({case_name}): {str(e)}")
+            # Return a fallback sample or re-raise
+            raise
+
+
+
+        # Convert to tensors and add batch dimension
+        input_tensor = data["image"].unsqueeze(0)
+        label_tensor = data["label"].unsqueeze(0)
+        
+        # Evaluate
+        dice_scores = evaluator.evaluate_case(
+            input_tensor,
+            label_tensor,
+            model
+        )
+
+        print({
+            'case_name': case_name,
+            **dice_scores
+        })

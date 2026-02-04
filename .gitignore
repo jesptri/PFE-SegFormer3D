@@ -196,6 +196,10 @@ viz_output/
 results/
 outputs/
 
+# Inference outputs
+/inference_plots/
+inference_plots/
+
 # Preprocessed data
 *.npy
 *.npz

@@ -10,14 +10,16 @@ SHOW_HELP=false
 DO_PREPROCESSING=false
 DO_TRAINING=false
 DO_INFERENCE=false
+declare -i TYPE_INFERENCE
 DO_EVALUATION=false
+declare -i TYPE_EVALUATION
 
-while getopts "ptieh" opt; do
+while getopts "pti:e:h" opt; do
   case "$opt" in
     p) DO_PREPROCESSING=true ;;
     t) DO_TRAINING=true ;;
-    i) DO_INFERENCE=true ;;
-    e) DO_EVALUATION=true ;;
+    i) DO_INFERENCE=true ; TYPE_INFERENCE=$OPTARG ;;
+    e) DO_EVALUATION=true ; TYPE_EVALUATION=$OPTARG ;;
     h) SHOW_HELP=true;;
     \?) echo "*-* Invalid option: -$OPTARG" ;;
   esac
@@ -79,11 +81,25 @@ if $DO_TRAINING; then
 fi
 
 if $DO_INFERENCE; then
-  echo "*-* Not implemented yet."
+  echo "*-* Launching the inference... (only pre-trained model for now)"
+  if [ "$TYPE_INFERENCE" -eq -1 ]; then
+    echo "*-* Type 1 inference: on all validation cases."
+    python3 $ROOT/eval_scripts/inference.py --inf_all
+  else
+    echo "*-* Type 2 inference: on a specific case."
+    python3 $ROOT/eval_scripts/inference.py --case_number $TYPE_INFERENCE
+  fi
 fi
 
 if $DO_EVALUATION; then
   echo "*-* Launching the evaluation... (only pre-trained model for now)"
-  python3 $ROOT/eval_scripts/evaluate.py 
+  if [ "$TYPE_EVALUATION" -eq -1 ]; then
+    echo "*-* Type 1 evaluation: on all validation and training cases."
+    python3 $ROOT/eval_scripts/evaluate.py --eval_all
+  else
+    echo "*-* Type 2 evaluation: on a specific case."
+    python3 $ROOT/eval_scripts/evaluate.py --case_number $TYPE_EVALUATION
+  fi
+   
 fi
 echo "*-* End of the entrypoint"

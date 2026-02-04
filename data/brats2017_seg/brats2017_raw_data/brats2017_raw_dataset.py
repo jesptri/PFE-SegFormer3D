@@ -9,7 +9,7 @@ import warnings
 warnings.filterwarnings("ignore", message="The cuda.cudart module is deprecated")
 warnings.simplefilter("ignore", FutureWarning)
 
-from brats2017_seg_preprocess import ConvertToMultiChannelBasedOnBrats2017Classes
+from .brats2017_seg_preprocess import ConvertToMultiChannelBasedOnBrats2017Classes
 
 class Brats2017RawDataset():
     """ This class handles the BraTS 2017 raw dataset loading and processing."""
