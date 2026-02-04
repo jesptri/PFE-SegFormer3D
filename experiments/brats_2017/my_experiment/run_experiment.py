@@ -2,6 +2,11 @@ import os
 import sys
 import random
 
+import warnings
+warnings.filterwarnings("ignore", message="Can't initialize NVML")
+warnings.filterwarnings("ignore", message="The cuda.cudart module is deprecated")
+warnings.simplefilter("ignore", FutureWarning)
+
 sys.path.append("../../../")
 
 import yaml
@@ -90,15 +95,9 @@ def launch_experiment(config_path) -> Dict:
 
     # use accelarate
     accelerator = Accelerator(
-        log_with="wandb",
         gradient_accumulation_steps=config["training_parameters"][
             "grad_accumulate_steps"
         ],
-    )
-    accelerator.init_trackers(
-        project_name=config["project"],
-        config=config,
-        init_kwargs={"wandb": config["wandb_parameters"]},
     )
 
     # display experiment info
@@ -199,15 +198,6 @@ def display_info(config, accelerator, trainset, valset, model):
     # print experiment info
     accelerator.print(f"-------------------------------------------------------")
     accelerator.print(f"[info]: Experiment Info")
-    accelerator.print(
-        f"[info] ----- Project: {colored(config['project'], color='red')}"
-    )
-    accelerator.print(
-        f"[info] ----- Group: {colored(config['wandb_parameters']['group'], color='red')}"
-    )
-    accelerator.print(
-        f"[info] ----- Name: {colored(config['wandb_parameters']['name'], color='red')}"
-    )
     accelerator.print(
         f"[info] ----- Batch Size: {colored(config['dataset_parameters']['train_dataloader_args']['batch_size'], color='red')}"
     )

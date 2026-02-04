@@ -53,7 +53,7 @@ class Segmentation_Trainer:
         self.accelerator = accelerator
 
         # get wandb object
-        self.wandb_tracker = accelerator.get_tracker("wandb")
+        # self.wandb_tracker = accelerator.get_tracker("wandb")
 
         # metrics
         self.current_epoch = 0  # current epoch
@@ -257,10 +257,10 @@ class Segmentation_Trainer:
     def _run_train_val(self) -> None:
         """Run full training and validation loop with memory optimization."""
         # Tell wandb to watch the model and optimizer values
-        if self.accelerator.is_main_process:
-            self.wandb_tracker.run.watch(
-                self.model, self.criterion, log="all", log_freq=10, log_graph=True
-            )
+        # if self.accelerator.is_main_process:
+        #     self.wandb_tracker.run.watch(
+        #         self.model, self.criterion, log="all", log_freq=10, log_graph=True
+        #     )
 
         # Run Training and Validation
         for epoch in tqdm(range(self.num_epochs)):
@@ -503,7 +503,7 @@ class AutoEncoder_Trainer:
         self.accelerator = accelerator
 
         # get wandb object
-        self.wandb_tracker = accelerator.get_tracker("wandb")
+        # self.wandb_tracker = accelerator.get_tracker("wandb")
 
         # metrics
         self.current_epoch = 0  # current epoch
@@ -678,10 +678,10 @@ class AutoEncoder_Trainer:
     def _run_train_val(self) -> None:
         """_summary_"""
         # Tell wandb to watch the model and optimizer values
-        if self.accelerator.is_main_process:
-            self.wandb_tracker.run.watch(
-                self.model, self.criterion, log="all", log_freq=10, log_graph=True
-            )
+        # if self.accelerator.is_main_process:
+        #     self.wandb_tracker.run.watch(
+        #         self.model, self.criterion, log="all", log_freq=10, log_graph=True
+        #     )
 
         # Run Training and Validation
         for epoch in tqdm(range(self.num_epochs)):

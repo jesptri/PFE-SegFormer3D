@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e
 
+export PYTHONPATH="$PYTHONPATH:$(pwd)"
+
 SHOW_HELP=false
 DO_PREPROCESSING=false
 DO_TRAINING=false
@@ -30,11 +32,11 @@ if $SHOW_HELP; then
 fi
 
 # paths can be written as it is because they are path inside the docker container
-ROOT="/app"
-RAW_DATA_DIR="/app/data/brats2017_seg/brats2017_raw_data"
+ROOT="."
+RAW_DATA_DIR="./data/brats2017_seg/brats2017_raw_data"
 TRAIN_DATA_DIR="train"
-PROCESSED_DATA_DIR="/app/data/brats2017_seg/processed_data/BraTS2017_Training_Data"
-EXPERIMENT_DIR=/app/experiments/brats_2017
+PROCESSED_DATA_DIR="./data/brats2017_seg/BraTS2017_Training_Data"
+EXPERIMENT_DIR=./experiments/brats_2017
 
 # TODO : Maybe add a DO_RESET option to remove the old folder for the processed data
 
@@ -56,7 +58,10 @@ if $DO_PREPROCESSING; then
 fi
 
 if $DO_TRAINING; then
-  accelerate launch $EXPERIMENT_DIR/your_experiment/run_experiment.py
+  cd $EXPERIMENT_DIR/my_experiment
+  echo "*-* Running training inside $(pwd)"
+  accelerate launch --config_file ./gpu_accelerate.yaml run_experiment.py
+  cd - > /dev/null
 fi
 
 if $DO_INFERENCE; then
