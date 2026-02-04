@@ -15,6 +15,10 @@ from monai.transforms import (
     EnsureType,
 )
 
+import warnings
+
+warnings.filterwarnings("ignore", category=FutureWarning)
+
 # whoever wrote this code knew what he was doing (hint: It was me!)
 
 """
@@ -239,16 +243,28 @@ class Brats2017Task1Preprocess:
 
 
     def __call__(self):
-        print("started preprocessing Brats2017...")
-        with Pool(processes=os.cpu_count()) as multi_p:
-            multi_p.map_async(func=self.process, iterable=range(self.__len__()))
-            multi_p.close()
-            multi_p.join()
-        print("finished preprocessing Brats2017...")
-
-    def process(self, idx):
+        total_cases = self.__len__()
+        print(f"Started preprocessing BraTS2017 - {total_cases} cases to process...")
+        print(f"Using {os.cpu_count()} CPU cores")
+        
+        # Create save directory before multiprocessing to avoid race condition
         if not os.path.exists(self.save_dir):
             os.makedirs(self.save_dir)
+        
+        # Progress tracking with discrete logging (Docker-friendly)
+        processed = 0
+        report_interval = max(1, total_cases // 20)  # Report every ~5%
+        
+        with Pool(processes=os.cpu_count()) as multi_p:
+            for _ in multi_p.imap(self.process, range(total_cases)):
+                processed += 1
+                if processed % report_interval == 0 or processed == total_cases:
+                    percentage = (processed / total_cases) * 100
+                    print(f"Progress: {processed}/{total_cases} cases ({percentage:.1f}%)")
+        
+        print(f"Finished preprocessing BraTS2017 - {total_cases} cases processed successfully!")
+
+    def process(self, idx):
         modalities, label, case_name = self.__getitem__(idx)
         # creating the folder for the current case id
         data_save_path = os.path.join(self.save_dir, case_name)

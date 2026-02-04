@@ -10,3 +10,4 @@ services:
       - ${DATA_DIR}:/app/data/
     tty: true
     stdin_open: true
+    command: ["all"]  # Default: run all steps. Override with: docker compose run app <command>

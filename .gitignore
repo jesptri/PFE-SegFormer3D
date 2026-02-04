@@ -199,6 +199,10 @@ outputs/
 *.npy
 *.npz
 
+# Evaluation results
+*.txt
+*.csv
+
 
 # ============================================================================
 # Experiment & Model Artifacts
