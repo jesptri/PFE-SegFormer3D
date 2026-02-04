@@ -9,7 +9,7 @@
 
 This repository implements and improves the existing project of Segformer-3D that 
 you can found here : https://github.com/OSUPCVLab/SegFormer3D. It is related to 
-the research paper on 3D image segmentation cited [here](#Research-Paper).
+the research paper on 3D image segmentation cited [here](#V---Research-Paper).
 
 # II - How to use
 
