@@ -5,12 +5,14 @@ SHOW_HELP=false
 DO_PREPROCESSING=false
 DO_TRAINING=false
 DO_INFERENCE=false
+DO_EVALUATION=false
 
 while getopts "ptih" opt; do
   case "$opt" in
     p) DO_PREPROCESSING=true ;;
     t) DO_TRAINING=true ;;
     i) DO_INFERENCE=true ;;
+    e) DO_EVALUATION=true ;;
     h) SHOW_HELP=true;;
     \?) echo "*-* Invalid option: -$OPTARG" ;;
   esac
@@ -21,6 +23,8 @@ if $SHOW_HELP; then
   echo "-p [Preprocessing] : allows to run the preprocessing scripts."
   echo "-t [Training] : allows to run the training scripts."
   echo "-i [Inference] : allows to run the inference scripts."
+  echo "-e [Evaluation] : allows to run the evaluation scripts."
+  echo "-h [Help] : shows this help message."
   echo "*-* End of the helper !"
   exit 0
 fi
@@ -30,7 +34,7 @@ ROOT="/app"
 RAW_DATA_DIR="/app/data/brats2017_seg/brats2017_raw_data"
 TRAIN_DATA_DIR="train"
 PROCESSED_DATA_DIR="/app/data/brats2017_seg/processed_data/BraTS2017_Training_Data"
-EXPERIMENT_DIR=/app/exeriments/brats_2017
+EXPERIMENT_DIR=/app/experiments/brats_2017
 
 # TODO : Maybe add a DO_RESET option to remove the old folder for the processed data
 
@@ -59,10 +63,7 @@ if $DO_INFERENCE; then
   echo "*-* Not implemented yet."
 fi
 
+if $DO_EVALUATION; then
+  echo "*-* Launching the evaluation... (only pre-trained model for now)"
+  python3 $ROOT/eval_scripts/evaluate.py 
 echo "*-* End of the entrypoint"
-
-# Evalutating
-
-# echo "Evaluating"
-# python3 eval_scripts/evaluate.py
-# echo "Done"
