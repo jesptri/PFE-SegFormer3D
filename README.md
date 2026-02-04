@@ -10,13 +10,13 @@
 This repository implements and improves the existing project of Segformer-3D that 
 you can find here : https://github.com/OSUPCVLab/SegFormer3D. 
 
-It is related to the research paper on 3D image segmentation cited [here](#III---Research-Paper).
+It is related to the research paper on 3D image segmentation cited [here](#IV---Research-Paper).
 
 # II - How to setup
-Get the GitHub repository by cloning this repo or you can download a folder archive in Kaggle at the following link:
-XXX
 
-Inside the project root, create a file named `.env` and define:
+Get the GitHub repository by cloning this repo or you can download a folder archive in Kaggle.
+
+At the project root, create a file named `.env` and define:
 
 ```
 TRAIN_DATA_DIR=/path/to/training/data
@@ -37,6 +37,7 @@ image is around 40GB. When done building, if you try to build again, this time i
 is only a matter of seconds.
 
 # III - How to use
+
 Now, your image is built and you can use it for different purposes. The base command
 is `docker compose run segformer`. But as it is, it will do nothing. You have to
 pass arguments. Here is the full command `docker compose run segformer -h -p -t -i -e <number>`.
@@ -53,7 +54,7 @@ Here are some examples of usage :
 -  `docker compose run segformer -p -t` : Launch the preprocessing and then start training 
 the model.
 -  `docker compose run segformer -t -e -1` : Train the model and the evaluate it on all 
-the data.
+the data. (not implemented yet)
 
 # IV - Research Paper
 

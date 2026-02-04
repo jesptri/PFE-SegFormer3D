@@ -14,10 +14,13 @@ RUN apt-get update && apt-get install -y \
 RUN pip install --upgrade pip
 RUN pip install -r /app/requirements.txt
 
-# de ce que j'ai compris il faut pas copier le dossier data, les données vont être sur la machine du client avant le preprocessing
-# et lors du preprocessing + entraînement toutes les outputs sont sur la machine du client, pas dans le code
-# se référer au fichier Docker.md pour plus d'infos !!!
-# COPY ./data . 
+RUN mkdir /app/data/
+RUN mkdir /app/data/brats2017_seg/
+RUN mkdir /app/data/brats2017_seg/brats2017_raw_data
+
+COPY data/brats2017_seg/brats2017_raw_data/datameta_generator /app/data/brats2017_seg/brats2017_raw_data/datameta_generator
+COPY data/brats2017_seg/brats2017_raw_data/*.py /app/data/brats2017_seg/brats2017_raw_data/
+COPY data/brats2017_seg/*.csv /app/data/brats2017_seg/
 
 COPY architectures/ /app/architectures/
 COPY augmentations/ /app/augmentations/
@@ -30,7 +33,8 @@ COPY optimizers/ /app/optimizers/
 COPY train_scripts/ /app/train_scripts/
 COPY eval_scripts/ /app/eval_scripts/
 COPY entrypoint.sh /app/entrypoint.sh
-COPY best_segformer3d_brats_performance.pth /app/best_segformer3d_brats_performance.pth
+# COPY best_segformer3d_brats_performance.pth /app/best_segformer3d_brats_performance.pth
+
 RUN chmod +x /app/entrypoint.sh
 
 ENV PYTHONPATH=/app/
