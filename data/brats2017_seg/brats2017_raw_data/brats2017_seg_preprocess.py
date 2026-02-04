@@ -106,7 +106,7 @@ class Brats2017Task1Preprocess:
     def orient(self, x: MetaTensor) -> MetaTensor:
         # orient the array to be in (Right, Anterior, Superior) scanner coordinate systems
         assert type(x) == MetaTensor
-        return Orientation(axcodes="RAS")(x)
+        return Orientation(axcodes="RAS", labels=None)(x)
 
     def detach_meta(self, x: MetaTensor) -> np.ndarray:
         assert type(x) == MetaTensor
