@@ -44,7 +44,7 @@ if $DO_PREPROCESSING; then
     echo "*-* The raw data folder was found !"
   fi
   if [ ! -d "$PROCESSED_DATA_DIR" ] || [ -z "$(ls -A $PROCESSED_DATA_DIR)" ]; then
-    echo "*-* Running preprocessing program..."
+    echo "*-* Running preprocessing script..."
     python3 $RAW_DATA_DIR/brats2017_seg_preprocess.py -r $RAW_DATA_DIR -t $TRAIN_DATA_DIR -o $PROCESSED_DATA_DIR
     cd $ROOT
   else
@@ -57,7 +57,7 @@ if $DO_TRAINING; then
 fi
 
 if $DO_INFERENCE; then
-
+  echo "*-* Not implemented yet."
 fi
 
 echo "*-* End of the entrypoint"
