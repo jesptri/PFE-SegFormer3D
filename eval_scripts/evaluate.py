@@ -265,7 +265,7 @@ if __name__ == "__main__":
         val_results = results_df[results_df['split'] == 'validation']
         
         # Save results
-        output_dir = os.path.join("./data", 'evaluation_results')
+        output_dir = os.path.join("./data/output", 'evaluation_results')
         os.makedirs(output_dir, exist_ok=True)
         
         # Save complete results

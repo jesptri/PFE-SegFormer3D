@@ -252,7 +252,7 @@ if __name__ == "__main__":
         val_paths = val_df['data_path'].to_numpy()
         val_cases = val_df['case_name'].to_numpy()
 
-        plots_folder = os.path.join(this_file_dir, 'plots')
+        plots_folder = os.path.join("/app/data/output", 'inference_plots')
         if not os.path.exists(plots_folder):
             os.makedirs(plots_folder)
 
@@ -377,13 +377,17 @@ if __name__ == "__main__":
                 save_animation(input_np_channel, gt_final_vol, final_pred_vol, save_animation_path)
                 np.save(save_np_path, final_pred_vol)
 
+                # print("Save animation path:", save_animation_path)
+                # print("Save image path:", save_img_path)
+                # print("Save numpy path:", save_np_path)
+
                 pbar.set_description(f"Case: {val_case_i} with Max area: {max_area}")
                 # print("****************")
                 # time.sleep(60)
                 pbar.update(1)
 
     else:
-        plots_folder = os.path.join(parent_dir, 'data', 'brats2017_seg', 'brats2017_raw_data', 'inference_plots')
+        plots_folder = os.path.join("/app/data/output", 'inference_plots')
         # Extract the tensor and label paths for the i-th case in the validation set
         data_path = os.path.join(parent_dir, 'data', 'brats2017_seg')
         # case number should be between 1 and 484 and translated to BRATS_xxx format
@@ -488,6 +492,7 @@ if __name__ == "__main__":
         # -----------------------------#
 
         case_plots_folder = os.path.join(plots_folder, case_name)
+        print("Case plots folder:", case_plots_folder)
         if not os.path.exists(case_plots_folder):
             os.makedirs(case_plots_folder)
 
@@ -498,6 +503,10 @@ if __name__ == "__main__":
         save_img_path = os.path.join(case_plots_folder, case_name + '_max_area.png')
         save_animation_path = os.path.join(case_plots_folder, case_name + '_animation.gif')
         save_np_path = os.path.join(case_plots_folder, case_name + '_final_pred.npy')
+
+        print("Save animation path:", save_animation_path)
+        print("Save image path:", save_img_path)
+        print("Save numpy path:", save_np_path)
 
         save_biggest_area_img(input_np_channel, gt_final_vol, final_pred_vol, max_slice, save_img_path)
         save_animation(input_np_channel, gt_final_vol, final_pred_vol, save_animation_path)
