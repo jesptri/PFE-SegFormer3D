@@ -1,6 +1,9 @@
 #!/bin/bash
 set -e
 
+# Silence warnings
+export PYTHONWARNINGS="ignore::UserWarning"
+
 export PYTHONPATH="$PYTHONPATH:$(pwd)"
 
 SHOW_HELP=false
@@ -32,11 +35,12 @@ if $SHOW_HELP; then
 fi
 
 # paths can be written as it is because they are path inside the docker container
-ROOT="."
-RAW_DATA_DIR="./data/brats2017_seg/brats2017_raw_data"
+ROOT="/app"
+RAW_DATA_DIR="/app/data/brats2017_seg/brats2017_raw_data"
+OUTPUT_DIR="/app/data/output"
 TRAIN_DATA_DIR="train"
-PROCESSED_DATA_DIR="./data/brats2017_seg/BraTS2017_Training_Data"
-EXPERIMENT_DIR=./experiments/brats_2017
+PROCESSED_DATA_DIR="/app/data/brats2017_seg/BraTS2017_Training_Data"
+EXPERIMENT_DIR=/app/experiments/brats_2017
 
 # TODO : Maybe add a DO_RESET option to remove the old folder for the processed data
 

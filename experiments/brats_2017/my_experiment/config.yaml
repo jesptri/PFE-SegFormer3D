@@ -1,23 +1,4 @@
-# wandb parameters
 project: segfmr3d
-# wandb_parameters:
-#   mode: "offline" # set this to "online" if you want to log to wandb
-#   entity: pcvlab
-#   group: brats2017
-#   name: segformer3d_adamw_batch2_diceloss
-#   resume: False
-#   tags: ["pcvlab", "dice", "b0_model", "adamw"]
-
-# wandb parameters
-# project: segfmr3d
-# wandb_parameters:
-#   mode: "online"   # switch to online so logs sync to the cloud
-#   entity: alihoussenaly-isae-supaero   # W&B username
-#   group: brats2017    # optional grouping for runs
-#   name: segformer3d_adamw_batch2_diceloss
-#   resume: "must"   # automatically resume if run with same name exists
-#   id: "vybwzlw7"  # unique id to identify the run
-#   tags: ["segformer3d", "brats2017", "adamw"]
 
 # model parameters
 model_name: segformer3d
@@ -50,7 +31,7 @@ optimizer:
 # schedulers
 warmup_scheduler:
   enabled: True # should be always true
-  warmup_epochs: 5 # Initial : 20 // Now : 5 // For testing purpose
+  warmup_epochs: 1 # Initial : 20 // Now : 1 // For testing purpose
 
 train_scheduler:
   scheduler_type: "cosine_annealing_wr"
@@ -77,7 +58,7 @@ clip_gradients:
 # training hyperparameters
 training_parameters:
   seed: 42
-  num_epochs: 100 # Initial : 800 // Now : 100 // For testing purpose
+  num_epochs: 5 # Initial : 800 // Now : 5 // For testing purpose
   cutoff_epoch: 400
   load_optimizer: False
   print_every: 200
