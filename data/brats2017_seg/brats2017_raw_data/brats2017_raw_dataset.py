@@ -5,6 +5,10 @@ import nibabel
 from sklearn.preprocessing import MinMaxScaler 
 from monai.transforms import Orientation, EnsureType
 
+import warnings
+warnings.filterwarnings("ignore", message="The cuda.cudart module is deprecated")
+warnings.simplefilter("ignore", FutureWarning)
+
 from brats2017_seg_preprocess import ConvertToMultiChannelBasedOnBrats2017Classes
 
 class Brats2017RawDataset():

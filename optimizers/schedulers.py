@@ -20,7 +20,7 @@ def warmup_lr_scheduler(config: Dict, optimizer: optim.Optimizer) -> LRScheduler
     """
     warmup_epochs = config["warmup_scheduler"]["warmup_epochs"]
     lambda1 = lambda epoch: (epoch + 1) * 1.0 / warmup_epochs
-    scheduler = optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lambda1, verbose=False)
+    scheduler = optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lambda1)
     return scheduler
 
 
@@ -52,7 +52,6 @@ def training_lr_scheduler(config: Dict, optimizer: optim.Optimizer) -> LRSchedul
             factor=0.1,
             mode=config["train_scheduler"]["mode"],
             patience=config["train_scheduler"]["patience"],
-            verbose=False,
             min_lr=scheduler_args["min_lr"],
         )
         return scheduler
@@ -64,7 +63,6 @@ def training_lr_scheduler(config: Dict, optimizer: optim.Optimizer) -> LRSchedul
             T_mult=scheduler_args["t_mult"],
             eta_min=scheduler_args["min_lr"],
             last_epoch=-1,
-            verbose=False,
         )
         return scheduler
     
