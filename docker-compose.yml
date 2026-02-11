@@ -8,7 +8,7 @@ services:
       - .env
     volumes:
       - ${TRAIN_DATA_DIR}:/app/data/brats2017_seg/brats2017_raw_data/train
-      - ${PROCESSED_DATA_DIR}:/app/data/brats2017_seg/processed_data
+      - ${PROCESSED_DATA_DIR}:/app/data/brats2017_seg/
       - ${OUTPUT_DIR}:/app/data/output
     tty: true
     stdin_open: true

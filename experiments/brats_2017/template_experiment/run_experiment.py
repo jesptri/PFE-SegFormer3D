@@ -2,6 +2,11 @@ import os
 import sys
 import random
 
+import warnings
+warnings.filterwarnings("ignore", message="Can't initialize NVML")
+warnings.filterwarnings("ignore", message="The cuda.cudart module is deprecated")
+warnings.simplefilter("ignore", FutureWarning)
+
 sys.path.append("../../../")
 
 import yaml
@@ -90,15 +95,9 @@ def launch_experiment(config_path) -> Dict:
 
     # use accelarate
     accelerator = Accelerator(
-        log_with="wandb",
         gradient_accumulation_steps=config["training_parameters"][
             "grad_accumulate_steps"
         ],
-    )
-    accelerator.init_trackers(
-        project_name=config["project"],
-        config=config,
-        init_kwargs={"wandb": config["wandb_parameters"]},
     )
 
     # display experiment info
@@ -142,18 +141,20 @@ def launch_experiment(config_path) -> Dict:
     # -----------------------------------------
     # Save results to ../data/results.txt
     # -----------------------------------------
-    results = trainer.get_final_results() if hasattr(trainer, "get_final_results") else {}
 
-    output_dir = "../data"
-    os.makedirs(output_dir, exist_ok=True)
+    #! Final results does not work
+    # results = trainer.get_final_results() if hasattr(trainer, "get_final_results") else {}
 
-    output_path = os.path.join(output_dir, "results.txt")
+    # output_dir = "../data"
+    # os.makedirs(output_dir, exist_ok=True)
 
-    with open(output_path, "w") as f:
-        for key, value in results.items():
-            f.write(f"{key}: {value}\n")
+    # output_path = os.path.join(output_dir, "results.txt")
 
-    print(f"Results saved to {output_path}")
+    # with open(output_path, "w") as f:
+    #     for key, value in results.items():
+    #         f.write(f"{key}: {value}\n")
+
+    # print(f"Results saved to {output_path}")
 
 
 ##################################################################################################
@@ -199,15 +200,6 @@ def display_info(config, accelerator, trainset, valset, model):
     # print experiment info
     accelerator.print(f"-------------------------------------------------------")
     accelerator.print(f"[info]: Experiment Info")
-    accelerator.print(
-        f"[info] ----- Project: {colored(config['project'], color='red')}"
-    )
-    accelerator.print(
-        f"[info] ----- Group: {colored(config['wandb_parameters']['group'], color='red')}"
-    )
-    accelerator.print(
-        f"[info] ----- Name: {colored(config['wandb_parameters']['name'], color='red')}"
-    )
     accelerator.print(
         f"[info] ----- Batch Size: {colored(config['dataset_parameters']['train_dataloader_args']['batch_size'], color='red')}"
     )

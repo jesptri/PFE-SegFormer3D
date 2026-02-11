@@ -62,10 +62,20 @@ if $DO_PREPROCESSING; then
 fi
 
 if $DO_TRAINING; then
-  cd $EXPERIMENT_DIR/my_experiment
+  # create experiment name
+  EXPERIMENT_NAME=experiment_$(date +"%Y_%m_%d_%H%M") 
+  # replace data in config.yaml
+  cp -r $EXPERIMENT_DIR/template_experiment $EXPERIMENT_DIR/$EXPERIMENT_NAME
+  sed -i "s|__EXPERIMENT_NAME__|${OUTPUT_DIR}/${EXPERIMENT_NAME}|g" "${EXPERIMENT_DIR}/${EXPERIMENT_NAME}/config.yaml"
+  # store last experiment name in OUTPUT DIR
+  > $OUTPUT_DIR/"last_experiment.txt" 
+  echo $EXPERIMENT_NAME >> $OUTPUT_DIR/last_experiment.txt
+  mkdir $OUTPUT_DIR/$EXPERIMENT_NAME
+  # run experiment
+  cd $EXPERIMENT_DIR/$EXPERIMENT_NAME
   echo "*-* Running training inside $(pwd)"
   accelerate launch --config_file ./gpu_accelerate.yaml run_experiment.py
-  cd - > /dev/null
+  cd $ROOT
 fi
 
 if $DO_INFERENCE; then
