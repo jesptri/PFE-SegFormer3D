@@ -13,7 +13,7 @@ DO_INFERENCE=false
 declare -i TYPE_INFERENCE
 DO_EVALUATION=false
 declare -i TYPE_EVALUATION
-MODEL_WEIGHTS=""
+MODEL_WEIGHTS="/app/best_segformer3d_brats_performance.pth"
 
 while getopts "pti:e:w:h" opt; do
   case "$opt" in
@@ -89,15 +89,10 @@ if $DO_INFERENCE; then
   
   if [ "$TYPE_INFERENCE" -eq -1 ]; then
     echo "*-* Type 1 inference: on all validation cases."
-    INFERENCE_CMD="$INFERENCE_CMD --inf_all"
+    INFERENCE_CMD="$INFERENCE_CMD --inf_all --weights $MODEL_WEIGHTS"
   else
     echo "*-* Type 2 inference: on a specific case."
-    INFERENCE_CMD="$INFERENCE_CMD --case_number $TYPE_INFERENCE"
-  fi
-  
-  if [ -n "$MODEL_WEIGHTS" ]; then
-    echo "*-* Using model weights: $MODEL_WEIGHTS"
-    INFERENCE_CMD="$INFERENCE_CMD --weights $MODEL_WEIGHTS"
+    INFERENCE_CMD="$INFERENCE_CMD --case_number $TYPE_INFERENCE --weights $MODEL_WEIGHTS"
   fi
   
   eval $INFERENCE_CMD
@@ -109,15 +104,10 @@ if $DO_EVALUATION; then
   
   if [ "$TYPE_EVALUATION" -eq -1 ]; then
     echo "*-* Type 1 evaluation: on all validation and training cases."
-    EVALUATION_CMD="$EVALUATION_CMD --eval_all"
+    EVALUATION_CMD="$EVALUATION_CMD --eval_all --weights $MODEL_WEIGHTS"
   else
     echo "*-* Type 2 evaluation: on a specific case."
-    EVALUATION_CMD="$EVALUATION_CMD --case_number $TYPE_EVALUATION"
-  fi
-  
-  if [ -n "$MODEL_WEIGHTS" ]; then
-    echo "*-* Using model weights: $MODEL_WEIGHTS"
-    EVALUATION_CMD="$EVALUATION_CMD --weights $MODEL_WEIGHTS"
+    EVALUATION_CMD="$EVALUATION_CMD --case_number $TYPE_EVALUATION --weights $MODEL_WEIGHTS"
   fi
   
   eval $EVALUATION_CMD
