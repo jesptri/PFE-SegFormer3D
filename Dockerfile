@@ -20,6 +20,7 @@ RUN mkdir /app/data/brats2017_seg/brats2017_raw_data
 
 COPY data/brats2017_seg/brats2017_raw_data/datameta_generator /app/data/brats2017_seg/brats2017_raw_data/datameta_generator
 COPY data/brats2017_seg/brats2017_raw_data/*.py /app/data/brats2017_seg/brats2017_raw_data/
+COPY data/brats2017_seg/official_best_model /app/data/brats2017_seg/official_best_model
 COPY data/brats2017_seg/*.csv /app/data/brats2017_seg/
 
 COPY architectures/ /app/architectures/

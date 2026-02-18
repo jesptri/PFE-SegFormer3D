@@ -3,9 +3,17 @@ set -e
 
 # Silence warnings
 export PYTHONWARNINGS="ignore::UserWarning"
-
 export PYTHONPATH="$PYTHONPATH:$(pwd)"
 
+# paths can be written as it is because they are path inside the docker container
+ROOT="/app"
+RAW_DATA_DIR="/app/data/brats2017_seg/brats2017_raw_data"
+OUTPUT_DIR="/app/data/output"
+TRAIN_DATA_DIR="train"
+PROCESSED_DATA_DIR="/app/data/brats2017_seg/BraTS2017_Training_Data"
+EXPERIMENT_DIR=/app/experiments/brats_2017
+
+# get args
 SHOW_HELP=false
 DO_PREPROCESSING=false
 DO_TRAINING=false
@@ -13,8 +21,7 @@ DO_INFERENCE=false
 declare -i TYPE_INFERENCE
 DO_EVALUATION=false
 declare -i TYPE_EVALUATION
-MODEL_WEIGHTS="/app/data/brats2017_seg/official_best_model/best_segformer3d_brats_performance.pth"
-
+MODEL_WEIGHTS=-2
 while getopts "pti:e:w:h" opt; do
   case "$opt" in
     p) DO_PREPROCESSING=true ;;
@@ -26,7 +33,6 @@ while getopts "pti:e:w:h" opt; do
     \?) echo "*-* Invalid option: -$OPTARG" ;;
   esac
 done
-
 if $SHOW_HELP; then
   echo "*-* Entrypoint helper for this Segformer 3D implementation"
   echo "-p [Preprocessing] : allows to run the preprocessing scripts."
@@ -38,14 +44,6 @@ if $SHOW_HELP; then
   echo "*-* End of the helper !"
   exit 0
 fi
-
-# paths can be written as it is because they are path inside the docker container
-ROOT="/app"
-RAW_DATA_DIR="/app/data/brats2017_seg/brats2017_raw_data"
-OUTPUT_DIR="/app/data/output"
-TRAIN_DATA_DIR="train"
-PROCESSED_DATA_DIR="/app/data/brats2017_seg/BraTS2017_Training_Data"
-EXPERIMENT_DIR=/app/experiments/brats_2017
 
 # TODO : Maybe add a DO_RESET option to remove the old folder for the processed data
 
@@ -81,6 +79,19 @@ if $DO_TRAINING; then
   echo "*-* Running training inside $(pwd)"
   accelerate launch --config_file ./gpu_accelerate.yaml run_experiment.py
   cd $ROOT
+fi
+
+# adapt model weight path
+if $DO_INFERENCE || $DO_EVALUATION; then
+  if [[ "$MODEL_WEIGHTS" =~ ^-?[0-9]+$ ]] && (( MODEL_WEIGHTS == -2)); then
+    echo "*-* No weight option given. Default model will be used."
+    MODEL_WEIGHTS="$RAW_DATA_DIR/../official_best_model/best_segformer3d_brats_performance.pth"
+  elif [[ $MODEL_WEIGHTS == "latest" ]]; then
+    echo "*-* Latest option for weights will automatically search for latest experiment."
+    MODEL_WEIGHTS="$OUTPUT_DIR/$(cat $OUTPUT_DIR/last_experiment.txt)/model_checkpoints/best_dice_checkpoint/pytorch_model.bin"
+  else
+    MODEL_WEIGHTS="$OUTPUT_DIR/$MODEL_WEIGHTS/model_checkpoints/best_dice_checkpoint/pytorch_model.bin"
+  fi
 fi
 
 if $DO_INFERENCE; then
