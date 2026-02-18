@@ -13,7 +13,7 @@ DO_INFERENCE=false
 declare -i TYPE_INFERENCE
 DO_EVALUATION=false
 declare -i TYPE_EVALUATION
-MODEL_WEIGHTS="/app/data/official_best_model/best_segformer3d_brats_performance.pth"
+MODEL_WEIGHTS="/app/data/brats2017_seg/official_best_model/best_segformer3d_brats_performance.pth"
 
 while getopts "pti:e:w:h" opt; do
   case "$opt" in
