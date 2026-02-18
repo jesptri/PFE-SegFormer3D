@@ -173,6 +173,7 @@ mlflow/
 /data/brats2017_seg/brats2017_raw_data/imagesTr/
 /data/brats2017_seg/brats2017_raw_data/labelsTr/
 /data/brats2017_seg/brats2017_raw_data/imagesTs/
+/data/brats2017_seg/(test)BraTS2017_Training_Data/
 
 # BraTS 2021 Dataset
 /data/brats2021_seg/BraTS2021_Training_Data/
@@ -195,6 +196,10 @@ viz_output/
 results/
 outputs/
 
+# Inference outputs
+/inference_plots/
+inference_plots/
+
 # Preprocessed data
 *.npy
 *.npz
@@ -202,6 +207,7 @@ outputs/
 # Evaluation results
 *.txt
 *.csv
+
 
 
 # ============================================================================

@@ -1,4 +1,4 @@
-FROM vllm/vllm-openai:v0.9.1
+FROM vllm/vllm-openai:v0.10.11
 
 WORKDIR /app
 
@@ -20,6 +20,7 @@ RUN mkdir /app/data/brats2017_seg/brats2017_raw_data
 
 COPY data/brats2017_seg/brats2017_raw_data/datameta_generator /app/data/brats2017_seg/brats2017_raw_data/datameta_generator
 COPY data/brats2017_seg/brats2017_raw_data/*.py /app/data/brats2017_seg/brats2017_raw_data/
+COPY data/brats2017_seg/official_best_model /app/data/brats2017_seg/official_best_model
 COPY data/brats2017_seg/*.csv /app/data/brats2017_seg/
 
 COPY architectures/ /app/architectures/
@@ -33,7 +34,6 @@ COPY optimizers/ /app/optimizers/
 COPY train_scripts/ /app/train_scripts/
 COPY eval_scripts/ /app/eval_scripts/
 COPY entrypoint.sh /app/entrypoint.sh
-# COPY best_segformer3d_brats_performance.pth /app/best_segformer3d_brats_performance.pth
 
 RUN chmod +x /app/entrypoint.sh
 
