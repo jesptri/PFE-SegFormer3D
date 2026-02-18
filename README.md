@@ -53,7 +53,7 @@ positive integer, the model will use the volume associated with this number.
 - `-w <latest|name>` : [OPTIONAL] Using this option will select an experiment folder as a model
 loader. If not given, it will select the official Segformer3D model weights. If `latest` is given,
 it will select the last experiment folder created automatically. If an experiment name is given,
-it will use it as model weights.
+it will use it as model weights.<br>
 Here are some examples of usage : 
 -  `docker compose run segformer -h` : Show the help message.
 -  `docker compose run segformer -p -t` : Launch the preprocessing and then start training 
