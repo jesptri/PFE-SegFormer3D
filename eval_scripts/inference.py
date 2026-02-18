@@ -274,33 +274,36 @@ if __name__ == "__main__":
                 val_path_i = val_paths[i]
                 val_case_i = val_cases[i]
 
-                # Load the original data for the four modalities
-                modal_names = ['0000', '0001', '0002', '0003']
-                input_np = []
-                for modal in modal_names:
-                    modal_path = os.path.join(model_config["dataset_parameters"]["brats_raw_root"], "train", "imagesTr", f"{val_case_i}_{modal}.nii.gz")
-                    modal_full = nib.load(modal_path).get_fdata()
-                    modal_crop = modal_full[56:184, 56:184, 13:141]
-                    modal_crop = (modal_crop - modal_crop.min()) / (modal_crop.max() - modal_crop.min())
-                    input_np.append(modal_crop.astype(np.float32))
-                input_np = np.stack(input_np)
+                # Load preprocessed data from .pt files (same as evaluate.py)
+                case_path = os.path.join(brats2017_seg_path, f"BraTS2017_Training_Data/{val_case_i}")
+                volume_fp = os.path.join(case_path, f"{val_case_i}_modalities.pt")
+                label_fp = os.path.join(case_path, f"{val_case_i}_label.pt")
 
-                # Load the original label
-                label_path = os.path.join(model_config["dataset_parameters"]["brats_raw_root"], 'train', 'labelsTr',
-                                        val_case_i + '.nii.gz')
-                label_img = nib.load(label_path)
-                label_data = label_img.get_fdata()[56:184, 56:184, 13:141]
+                try:
+                    # Load preprocessed volume and label
+                    volume = torch.load(volume_fp, map_location=device, weights_only=False)
+                    label = torch.load(label_fp, map_location=device, weights_only=False)
 
-                # Convert the label to one-hot encoding
-                label_1 = (label_data == 1).astype(np.float32)  # edema
-                label_2 = (label_data == 2).astype(np.float32)  # non-enhancing tumor
-                label_3 = (label_data == 3).astype(np.float32)  # enhancing tumour
+                    # Convert to tensors if needed
+                    if not isinstance(volume, torch.Tensor):
+                        volume = torch.from_numpy(volume)
+                    if not isinstance(label, torch.Tensor):
+                        label = torch.from_numpy(label)
 
-                label_np = np.stack([label_1, label_2, label_3])
+                    # For inference, use preprocessed data directly
+                    input_tensor = volume.float()
+                    label_tensor = label.float()
+                    
+                    # For visualization, inverse the swapaxes(1,3) from preprocessing
+                    input_np = volume.cpu().numpy()
+                    input_np = np.swapaxes(input_np, 1, 3)  # Restore original orientation
+                    label_np = label.cpu().numpy()
+                    label_np = np.swapaxes(label_np, 1, 3)  # Restore original orientation
 
-                # Convert the numpy arrays to tensors and move them to the device
-                input_tensor = torch.from_numpy(input_np).to(device)
-                label_tensor = torch.from_numpy(label_np).to(device)
+                except Exception as e:
+                    print(f"Error loading data for {val_case_i}: {str(e)}")
+                    pbar.update(1)
+                    continue
 
                 # Add a batch dimension to the input and label tensors for the model
                 input_tensor = input_tensor.unsqueeze(0)
@@ -334,6 +337,10 @@ if __name__ == "__main__":
                 # Get the final prediction volume
                 final_pred = output_convert[0]
                 final_pred_np = final_pred.cpu().numpy()  # Convert the tensor to numpy array
+                
+                # Inverse swapaxes on predictions to match visualization space
+                final_pred_np = np.swapaxes(final_pred_np, 1, 3)
+                
                 final_pred_np = final_pred_np > 0.5  # Threshold the output to get the final segmentation (0.5 threshold because of the sigmoid activation)
 
                 # #Label 0: Background
@@ -355,15 +362,18 @@ if __name__ == "__main__":
                 final_pred_vol = final_pred_vol.astype(np.uint8)
                 # -----------------------------#
 
-                # Label volume creation)
+                # Label volume creation from .pt format [TC, WT, ET]
                 gt_final_vol = np.zeros_like(final_pred_vol)
 
-                label1_np, label2_np, label3_np = label_np  # Split the label volume into the 3 classes
+                tc_np, wt_np, et_np = label_np  # Split: TC, WT, ET
 
-                # -------- Fused the results of 4 channels of labels to obtain 3D segmentation volume ----------
-                gt_final_vol[label1_np > 0.5] = 1  # edema
-                gt_final_vol[label2_np > 0.5] = 2  # non-enhancing tumor
-                gt_final_vol[label3_np > 0.5] = 3  # enhancing tumour
+                # Create visualization labels prioritizing visibility:
+                # Label 1: WT (Whole Tumor) - yellow
+                # Label 2: TC (Tumor Core) - red  
+                # Label 3: ET (Enhancing Tumor) - cyan
+                gt_final_vol[wt_np > 0.5] = 1  # Whole tumor
+                gt_final_vol[tc_np > 0.5] = 2  # Tumor core
+                gt_final_vol[et_np > 0.5] = 3  # Enhancing tumor
 
                 # -----------------------------#
 
@@ -403,34 +413,37 @@ if __name__ == "__main__":
         data_path = os.path.join(parent_dir, 'data', 'brats2017_seg')
         # case number should be between 1 and 484 and translated to BRATS_xxx format
         case_name = f"BRATS_{case_number:03d}"
+        print(f"Processing case: {case_name}\n")
 
-        # Load the original data for the four modalities
-        modal_names = ['0000', '0001', '0002', '0003']
-        input_np = []
-        for modal in modal_names:
-            modal_path = os.path.join(model_config["dataset_parameters"]["brats_raw_root"], "train", "imagesTr", f"{case_name}_{modal}.nii.gz")
-            modal_full = nib.load(modal_path).get_fdata()
-            modal_crop = modal_full[56:184, 56:184, 13:141]
-            modal_crop = (modal_crop - modal_crop.min()) / (modal_crop.max() - modal_crop.min())
-            input_np.append(modal_crop.astype(np.float32))
-        input_np = np.stack(input_np)
+        # Load preprocessed data from .pt files (same as evaluate.py)
+        case_path = os.path.join(data_path, f"BraTS2017_Training_Data/{case_name}")
+        volume_fp = os.path.join(case_path, f"{case_name}_modalities.pt")
+        label_fp = os.path.join(case_path, f"{case_name}_label.pt")
 
-        # Load the original label
-        label_path = os.path.join(model_config["dataset_parameters"]["brats_raw_root"], 'train', 'labelsTr',
-                                f"{case_name}.nii.gz")
-        label_img = nib.load(label_path)
-        label_data = label_img.get_fdata()[56:184, 56:184, 13:141]
+        try:
+            # Load preprocessed volume and label
+            volume = torch.load(volume_fp, map_location=device, weights_only=False)
+            label = torch.load(label_fp, map_location=device, weights_only=False)
 
-        # Convert the label to one-hot encoding
-        label_1 = (label_data == 1).astype(np.float32)  # edema
-        label_2 = (label_data == 2).astype(np.float32)  # non-enhancing tumor
-        label_3 = (label_data == 3).astype(np.float32)  # enhancing tumour
+            # Convert to tensors if needed
+            if not isinstance(volume, torch.Tensor):
+                volume = torch.from_numpy(volume)
+            if not isinstance(label, torch.Tensor):
+                label = torch.from_numpy(label)
 
-        label_np = np.stack([label_1, label_2, label_3])
+            # For inference, use preprocessed data directly
+            input_tensor = volume.float()
+            label_tensor = label.float()
+            
+            # For visualization, inverse the swapaxes(1,3) from preprocessing
+            input_np = volume.cpu().numpy()
+            input_np = np.swapaxes(input_np, 1, 3)  # Restore original orientation
+            label_np = label.cpu().numpy()
+            label_np = np.swapaxes(label_np, 1, 3)  # Restore original orientation
 
-        # Convert the numpy arrays to tensors and move them to the device
-        input_tensor = torch.from_numpy(input_np).to(device)
-        label_tensor = torch.from_numpy(label_np).to(device)
+        except Exception as e:
+            print(f"Error loading data for {case_name}: {str(e)}")
+            raise
 
         # Add a batch dimension to the input and label tensors for the model
         input_tensor = input_tensor.unsqueeze(0)
@@ -464,6 +477,10 @@ if __name__ == "__main__":
         # Get the final prediction volume
         final_pred = output_convert[0]
         final_pred_np = final_pred.cpu().numpy()  # Convert the tensor to numpy array
+        
+        # Inverse swapaxes on predictions to match visualization space
+        final_pred_np = np.swapaxes(final_pred_np, 1, 3)
+        
         final_pred_np = final_pred_np > 0.5  # Threshold the output to get the final segmentation (0.5 threshold because of the sigmoid activation)
 
         # #Label 0: Background
@@ -485,15 +502,18 @@ if __name__ == "__main__":
         final_pred_vol = final_pred_vol.astype(np.uint8)
         # -----------------------------#
 
-        # Label volume creation)
+        # Label volume creation from .pt format [TC, WT, ET]
         gt_final_vol = np.zeros_like(final_pred_vol)
 
-        label1_np, label2_np, label3_np = label_np  # Split the label volume into the 3 classes
+        tc_np, wt_np, et_np = label_np  # Split: TC, WT, ET
 
-        # -------- Fused the results of 4 channels of labels to obtain 3D segmentation volume ----------
-        gt_final_vol[label1_np > 0.5] = 1  # edema
-        gt_final_vol[label2_np > 0.5] = 2  # non-enhancing tumor
-        gt_final_vol[label3_np > 0.5] = 3  # enhancing tumour
+        # Create visualization labels prioritizing visibility:
+        # Label 1: WT (Whole Tumor) - yellow
+        # Label 2: TC (Tumor Core) - red  
+        # Label 3: ET (Enhancing Tumor) - cyan
+        gt_final_vol[wt_np > 0.5] = 1  # Whole tumor
+        gt_final_vol[tc_np > 0.5] = 2  # Tumor core
+        gt_final_vol[et_np > 0.5] = 3  # Enhancing tumor
 
         # -----------------------------#
 
