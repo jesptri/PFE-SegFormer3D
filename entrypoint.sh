@@ -66,7 +66,7 @@ fi
 
 if $DO_TRAINING; then
   # create experiment name
-  EXPERIMENT_NAME=experiment_$(date +"%Y_%m_%d_%H%M") 
+  EXPERIMENT_NAME=experiment_$(TZ="Etc/GMT-1" date +"%Y_%m_%d_%H%M") 
   # replace data in config.yaml
   cp -r $EXPERIMENT_DIR/template_experiment $EXPERIMENT_DIR/$EXPERIMENT_NAME
   sed -i "s|__EXPERIMENT_NAME__|${OUTPUT_DIR}/${EXPERIMENT_NAME}|g" "${EXPERIMENT_DIR}/${EXPERIMENT_NAME}/config.yaml"
