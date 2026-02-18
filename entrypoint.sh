@@ -39,7 +39,7 @@ if $SHOW_HELP; then
   echo "-t [Training] : allows to run the training scripts."
   echo "-i [Inference] : allows to run the inference scripts."
   echo "-e [Evaluation] : allows to run the evaluation scripts."
-  echo "-w [Weights] : path to model weights file (.pth). Optional."
+  echo "-w [Weights] : allows to select an experiment as a model. Optional [latest | name of the experiment]."
   echo "-h [Help] : shows this help message."
   echo "*-* End of the helper !"
   exit 0

@@ -40,21 +40,28 @@ is only a matter of seconds.
 
 Now, your image is built and you can use it for different purposes. The base command
 is `docker compose run segformer`. But as it is, it will do nothing. You have to
-pass arguments. Here is the full command `docker compose run segformer -h -p -t -i -e <number>`.
+pass arguments. Here is the full command `docker compose run segformer -h -p -t -i <number> -e <number> -w <lateset|name>`.
 - `-h` : Using this option will display how the other options work.
 - `-p` : Using this option will launch the preprocessing of your data.
-- `-t` : Using this option will start the training of a new model on your data. (not implemented yet)
-- `-i` : Using this option will run a given model on your data. (not implemented yet)
-- `-e <number>` : Using this option will evaluate a model. The argument <number>
-allows to specify which data is evaluated. If you give `-1`, the model will use
-all of your data. If you give a positive integer, the model will use the volume
-associated with this number. (not implemented yet)
+- `-t` : Using this option will start the training of a new model on your data. 
+- `-i <number>` : Using this option will run a given model on your data. The argument <number> 
+allows to specify which data is evaluated. If you give `-1`, the model will use all of your data.
+ If you give a positive integer, the model will use the volume associated with this number.
+- `-e <number>` : Using this option will evaluate a model. The argument <number> allows to specify
+which data is evaluated. If you give `-1`, the model will use all of your data. If you give a
+positive integer, the model will use the volume associated with this number.
+- `-w <latest|name>` : [OPTIONAL] Using this option will select an experiment folder as a model
+loader. If not given, it will select the official Segformer3D model weights. If `latest` is given,
+it will select the last experiment folder created automatically. If an experiment name is given,
+it will use it as model weights.
 Here are some examples of usage : 
 -  `docker compose run segformer -h` : Show the help message.
 -  `docker compose run segformer -p -t` : Launch the preprocessing and then start training 
 the model.
 -  `docker compose run segformer -t -e -1` : Train the model and the evaluate it on all 
-the data. (not implemented yet)
+the data.
+-  `docker compose run segformer -i 1 -w latest` : Infer the model saved in the last experiment
+on the first volume.
 
 # IV - Research Paper
 
