@@ -20,8 +20,8 @@ At the project root, create a file named `.env` and define:
 
 ```
 TRAIN_DATA_DIR=/path/to/training/data
-PROCESS_DATA_DIR=/path/to/preprocessed/data
-OUTPUT_DATA_DIR=/path/to/output/models
+PROCESSED_DATA_DIR=/path/to/preprocessed/data
+OUTPUT_DIR=/path/to/output/models
 ```
 
 These paths specify:

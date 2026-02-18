@@ -72,6 +72,7 @@ training_parameters:
 
 # dataset args
 dataset_parameters:
+  brats_raw_root: "./data/brats2017_seg/brats2017_raw_data"
   dataset_type: "brats2017_seg"
   train_dataset_args:
     root: "../../../data/brats2017_seg"

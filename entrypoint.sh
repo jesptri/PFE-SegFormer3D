@@ -10,14 +10,18 @@ SHOW_HELP=false
 DO_PREPROCESSING=false
 DO_TRAINING=false
 DO_INFERENCE=false
+declare -i TYPE_INFERENCE
 DO_EVALUATION=false
+declare -i TYPE_EVALUATION
+MODEL_WEIGHTS="/app/best_segformer3d_brats_performance.pth"
 
-while getopts "ptieh" opt; do
+while getopts "pti:e:w:h" opt; do
   case "$opt" in
     p) DO_PREPROCESSING=true ;;
     t) DO_TRAINING=true ;;
-    i) DO_INFERENCE=true ;;
-    e) DO_EVALUATION=true ;;
+    i) DO_INFERENCE=true ; TYPE_INFERENCE=$OPTARG ;;
+    e) DO_EVALUATION=true ; TYPE_EVALUATION=$OPTARG ;;
+    w) MODEL_WEIGHTS=$OPTARG ;;
     h) SHOW_HELP=true;;
     \?) echo "*-* Invalid option: -$OPTARG" ;;
   esac
@@ -29,6 +33,7 @@ if $SHOW_HELP; then
   echo "-t [Training] : allows to run the training scripts."
   echo "-i [Inference] : allows to run the inference scripts."
   echo "-e [Evaluation] : allows to run the evaluation scripts."
+  echo "-w [Weights] : path to model weights file (.pth). Optional."
   echo "-h [Help] : shows this help message."
   echo "*-* End of the helper !"
   exit 0
@@ -79,11 +84,32 @@ if $DO_TRAINING; then
 fi
 
 if $DO_INFERENCE; then
-  echo "*-* Not implemented yet."
+  echo "*-* Launching the inference..."
+  INFERENCE_CMD="python3 $ROOT/eval_scripts/inference.py"
+  
+  if [ "$TYPE_INFERENCE" -eq -1 ]; then
+    echo "*-* Type 1 inference: on all validation cases."
+    INFERENCE_CMD="$INFERENCE_CMD --inf_all --weights $MODEL_WEIGHTS"
+  else
+    echo "*-* Type 2 inference: on a specific case."
+    INFERENCE_CMD="$INFERENCE_CMD --case_number $TYPE_INFERENCE --weights $MODEL_WEIGHTS"
+  fi
+  
+  eval $INFERENCE_CMD
 fi
 
 if $DO_EVALUATION; then
-  echo "*-* Launching the evaluation... (only pre-trained model for now)"
-  python3 $ROOT/eval_scripts/evaluate.py 
+  echo "*-* Launching the evaluation..."
+  EVALUATION_CMD="python3 $ROOT/eval_scripts/evaluate.py"
+  
+  if [ "$TYPE_EVALUATION" -eq -1 ]; then
+    echo "*-* Type 1 evaluation: on all validation and training cases."
+    EVALUATION_CMD="$EVALUATION_CMD --eval_all --weights $MODEL_WEIGHTS"
+  else
+    echo "*-* Type 2 evaluation: on a specific case."
+    EVALUATION_CMD="$EVALUATION_CMD --case_number $TYPE_EVALUATION --weights $MODEL_WEIGHTS"
+  fi
+  
+  eval $EVALUATION_CMD
 fi
 echo "*-* End of the entrypoint"

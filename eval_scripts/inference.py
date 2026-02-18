@@ -21,7 +21,7 @@ from monai.transforms import Activations
 from monai.transforms import AsDiscrete
 import nibabel as nib
 
-sys.path.append("../../../")
+sys.path.append("../")
 
 from architectures.build_architecture import build_architecture
 
@@ -185,6 +185,29 @@ def save_animation(vol_og, vol_gt, vol_pred, save_path):
     plt.close(fig)
 
 if __name__ == "__main__":
+
+    import argparse
+    parser = argparse.ArgumentParser(description="Inference script for SegFormer3D on BraTS 2017 dataset")
+    parser.add_argument(
+        "--inf_all",
+        action="store_true",
+        help="If set, perform inference on all validation cases.",
+    )
+    parser.add_argument(
+        "--case_number",
+        type=int,
+        default=1,
+        help="Case number of the patient to perform inference on (1-484).",
+    )
+    parser.add_argument(
+        "--weights",
+        type=str,
+        default=None,
+        help="Path to model weights file (.pth). If not provided, uses default weights.",
+    )
+    args = parser.parse_args()
+    case_number = args.case_number
+    inf_all = args.inf_all
     # Device setup
     # device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -196,8 +219,19 @@ if __name__ == "__main__":
     grandparent_dir = os.path.dirname(parent_dir)
     grand_grandparent_dir = os.path.dirname(grandparent_dir)
 
-    config_path = os.path.join(this_file_dir, "config.yaml")
-    weights_path = os.path.join(grand_grandparent_dir, "best_segformer3d_brats_performance.pth")
+    config_path = os.path.join(
+        parent_dir,
+        "experiments/brats_2017/template_experiment/config.yaml"
+    )
+    
+    # Use provided weights path or default
+    if args.weights:
+        weights_path = args.weights
+    else:
+        weights_path = os.path.join(
+            parent_dir,
+            "best_segformer3d_brats_performance.pth"
+        )
     # weights_path = os.path.join(this_file_dir, 'model_checkpoints', 'best_dice_checkpoint', 'pytorch_model.bin')
 
     # Model configuration
@@ -219,141 +253,273 @@ if __name__ == "__main__":
     # Inference
     model.eval()
 
-    # Paths to the tensor and label files
-    data_path = os.path.join(grand_grandparent_dir, 'data')
-    brats2017_seg_path = os.path.join(data_path, 'brats2017_seg')
-    val_csv_path = os.path.join(brats2017_seg_path, 'validation.csv')
-    val_df = pd.read_csv(val_csv_path)
+    if inf_all:
+        # Paths to the tensor and label files
+        data_path = os.path.join(parent_dir, 'data')
+        brats2017_seg_path = os.path.join(data_path, 'brats2017_seg')
+        val_csv_path = os.path.join(brats2017_seg_path, 'validation.csv')
+        val_df = pd.read_csv(val_csv_path)
 
-    val_paths = val_df['data_path'].to_numpy()
-    val_cases = val_df['case_name'].to_numpy()
+        val_paths = val_df['data_path'].to_numpy()
+        val_cases = val_df['case_name'].to_numpy()
 
-    plots_folder = os.path.join(this_file_dir, 'plots')
-    if not os.path.exists(plots_folder):
-        os.makedirs(plots_folder)
+        plots_folder = os.path.join("/app/data/output", 'inference_plots')
+        if not os.path.exists(plots_folder):
+            os.makedirs(plots_folder)
 
-    with tqdm(total=len(val_paths)) as pbar:
-        for i in range(len(val_paths)):
+        with tqdm(total=len(val_paths)) as pbar:
+            for i in range(len(val_paths)):
 
-            # Extract the tensor and label paths for the i-th case in the validation set
-            val_path_i = val_paths[i]
-            val_case_i = val_cases[i]
+                # Extract the tensor and label paths for the i-th case in the validation set
+                val_path_i = val_paths[i]
+                val_case_i = val_cases[i]
 
-            # Load the original data for the four modalities
-            modal_names = ['0000', '0001', '0002', '0003']
-            input_np = []
-            for modal in modal_names:
-                modal_path = os.path.join(model_config["dataset_parameters"]["brats_raw_root"], "train", "imagesTr", f"{val_case_i}_{modal}.nii.gz")
-                modal_full = nib.load(modal_path).get_fdata()
-                modal_crop = modal_full[56:184, 56:184, 13:141]
-                modal_crop = (modal_crop - modal_crop.min()) / (modal_crop.max() - modal_crop.min())
-                input_np.append(modal_crop.astype(np.float32))
-            input_np = np.stack(input_np)
+                # Load the original data for the four modalities
+                modal_names = ['0000', '0001', '0002', '0003']
+                input_np = []
+                for modal in modal_names:
+                    modal_path = os.path.join(model_config["dataset_parameters"]["brats_raw_root"], "train", "imagesTr", f"{val_case_i}_{modal}.nii.gz")
+                    modal_full = nib.load(modal_path).get_fdata()
+                    modal_crop = modal_full[56:184, 56:184, 13:141]
+                    modal_crop = (modal_crop - modal_crop.min()) / (modal_crop.max() - modal_crop.min())
+                    input_np.append(modal_crop.astype(np.float32))
+                input_np = np.stack(input_np)
 
-            # Load the original label
-            label_path = os.path.join(model_config["dataset_parameters"]["brats_raw_root"], 'train', 'labelsTr',
-                                      val_case_i + '.nii.gz')
-            label_img = nib.load(label_path)
-            label_data = label_img.get_fdata()[56:184, 56:184, 13:141]
+                # Load the original label
+                label_path = os.path.join(model_config["dataset_parameters"]["brats_raw_root"], 'train', 'labelsTr',
+                                        val_case_i + '.nii.gz')
+                label_img = nib.load(label_path)
+                label_data = label_img.get_fdata()[56:184, 56:184, 13:141]
 
-            # Convert the label to one-hot encoding
-            label_1 = (label_data == 1).astype(np.float32)  # edema
-            label_2 = (label_data == 2).astype(np.float32)  # non-enhancing tumor
-            label_3 = (label_data == 3).astype(np.float32)  # enhancing tumour
+                # Convert the label to one-hot encoding
+                label_1 = (label_data == 1).astype(np.float32)  # edema
+                label_2 = (label_data == 2).astype(np.float32)  # non-enhancing tumor
+                label_3 = (label_data == 3).astype(np.float32)  # enhancing tumour
 
-            label_np = np.stack([label_1, label_2, label_3])
+                label_np = np.stack([label_1, label_2, label_3])
 
-            # Convert the numpy arrays to tensors and move them to the device
-            input_tensor = torch.from_numpy(input_np).to(device)
-            label_tensor = torch.from_numpy(label_np).to(device)
+                # Convert the numpy arrays to tensors and move them to the device
+                input_tensor = torch.from_numpy(input_np).to(device)
+                label_tensor = torch.from_numpy(label_np).to(device)
 
-            # Add a batch dimension to the input and label tensors for the model
-            input_tensor = input_tensor.unsqueeze(0)
-            label_tensor = label_tensor.unsqueeze(0)
+                # Add a batch dimension to the input and label tensors for the model
+                input_tensor = input_tensor.unsqueeze(0)
+                label_tensor = label_tensor.unsqueeze(0)
 
-            # ---------------------------- #
+                # ---------------------------- #
 
-            # Define the post-transforms for the predictions
-            post_transform = Compose([
-                Activations(sigmoid=True),  # Sigmoid activation to the model output
-                AsDiscrete(argmax=False, threshold=0.5)  # Thresholding the output]
-            ]
-            )
+                # Define the post-transforms for the predictions
+                post_transform = Compose([
+                    Activations(sigmoid=True),  # Sigmoid activation to the model output
+                    AsDiscrete(argmax=False, threshold=0.5)  # Thresholding the output]
+                ]
+                )
 
-            # Get the predicted segmentation using sliding window inference from MONAI
-            logits = sliding_window_inference(
-                inputs=input_tensor,
-                roi_size=[128, 128, 128],
-                sw_batch_size=4,
-                predictor=model,
-                overlap=0.5,
-            )
+                # Get the predicted segmentation using sliding window inference from MONAI
+                logits = sliding_window_inference(
+                    inputs=input_tensor,
+                    roi_size=[128, 128, 128],
+                    sw_batch_size=4,
+                    predictor=model,
+                    overlap=0.5,
+                )
 
-            decollated_preds = decollate_batch(logits)  # Decollate the batch of predictions
+                decollated_preds = decollate_batch(logits)  # Decollate the batch of predictions
 
-            # Convert the predictions to the final output format
-            output_convert = [
-                post_transform(val_pred_tensor) for val_pred_tensor in decollated_preds
-            ]
+                # Convert the predictions to the final output format
+                output_convert = [
+                    post_transform(val_pred_tensor) for val_pred_tensor in decollated_preds
+                ]
 
-            # Get the final prediction volume
-            final_pred = output_convert[0]
-            final_pred_np = final_pred.cpu().numpy()  # Convert the tensor to numpy array
-            final_pred_np = final_pred_np > 0.5  # Threshold the output to get the final segmentation (0.5 threshold because of the sigmoid activation)
+                # Get the final prediction volume
+                final_pred = output_convert[0]
+                final_pred_np = final_pred.cpu().numpy()  # Convert the tensor to numpy array
+                final_pred_np = final_pred_np > 0.5  # Threshold the output to get the final segmentation (0.5 threshold because of the sigmoid activation)
 
-            # #Label 0: Background
-            # #Label 1: Non-enhancing tumor (NCR/NET)
-            # #Label 2: WT (whole tumor) = ET (enhancing tumor) + NCR/NET (non-enhancing tumor)
-            # #Label 3: ET (enhancing tumor)
+                # #Label 0: Background
+                # #Label 1: Non-enhancing tumor (NCR/NET)
+                # #Label 2: WT (whole tumor) = ET (enhancing tumor) + NCR/NET (non-enhancing tumor)
+                # #Label 3: ET (enhancing tumor)
 
-            class1_vol, class2_vol, class3_vol = final_pred_np  # Split the final prediction volume into the 3 classes
+                class1_vol, class2_vol, class3_vol = final_pred_np  # Split the final prediction volume into the 3 classes
 
-            # print(np.sum(class1_vol))
-            # print(np.sum(class2_vol))
-            # print(np.sum(class3_vol))
+                # print(np.sum(class1_vol))
+                # print(np.sum(class2_vol))
+                # print(np.sum(class3_vol))
 
-            # Combine the 3 classes to get the final prediction volume (0: background, 1: non-enhancing, 2: whole tumor, 3: enhancing tumor)
-            final_pred_vol = np.zeros_like(class1_vol)
-            final_pred_vol = np.sum([class1_vol, class2_vol, class3_vol], axis=0)
+                # Combine the 3 classes to get the final prediction volume (0: background, 1: non-enhancing, 2: whole tumor, 3: enhancing tumor)
+                final_pred_vol = np.zeros_like(class1_vol)
+                final_pred_vol = np.sum([class1_vol, class2_vol, class3_vol], axis=0)
 
-            # ------- Fused the predictions of 4 channels to obtain a 3D segmentation volume --------
-            final_pred_vol = final_pred_vol.astype(np.uint8)
-            # -----------------------------#
+                # ------- Fused the predictions of 4 channels to obtain a 3D segmentation volume --------
+                final_pred_vol = final_pred_vol.astype(np.uint8)
+                # -----------------------------#
 
-            # Label volume creation)
-            gt_final_vol = np.zeros_like(final_pred_vol)
+                # Label volume creation)
+                gt_final_vol = np.zeros_like(final_pred_vol)
 
-            label1_np, label2_np, label3_np = label_np  # Split the label volume into the 3 classes
+                label1_np, label2_np, label3_np = label_np  # Split the label volume into the 3 classes
 
-            # -------- Fused the results of 4 channels of labels to obtain 3D segmentation volume ----------
-            gt_final_vol[label1_np > 0.5] = 1  # edema
-            gt_final_vol[label2_np > 0.5] = 2  # non-enhancing tumor
-            gt_final_vol[label3_np > 0.5] = 3  # enhancing tumour
+                # -------- Fused the results of 4 channels of labels to obtain 3D segmentation volume ----------
+                gt_final_vol[label1_np > 0.5] = 1  # edema
+                gt_final_vol[label2_np > 0.5] = 2  # non-enhancing tumor
+                gt_final_vol[label3_np > 0.5] = 3  # enhancing tumour
 
-            # -----------------------------#
+                # -----------------------------#
 
-            # Extract a channel from the input tensor for visualization
-            input_np_channel = input_np[0]  # Directly use the data from the first channel for visualization.
+                # Extract a channel from the input tensor for visualization
+                input_np_channel = input_np[0]  # Directly use the data from the first channel for visualization.
 
-            # -----------------------------#
+                # -----------------------------#
 
-            case_plots_folder = os.path.join(plots_folder, val_case_i)
-            if not os.path.exists(case_plots_folder):
-                os.makedirs(case_plots_folder)
+                case_plots_folder = os.path.join(plots_folder, val_case_i)
+                if not os.path.exists(case_plots_folder):
+                    os.makedirs(case_plots_folder)
 
-            # -----------------------------#
+                # -----------------------------#
 
-            max_slice, max_area = get_max_slice(final_pred_vol)
+                max_slice, max_area = get_max_slice(final_pred_vol)
 
-            save_img_path = os.path.join(case_plots_folder, val_case_i + '_max_area.png')
-            save_animation_path = os.path.join(case_plots_folder, val_case_i + '_animation.gif')
-            save_np_path = os.path.join(case_plots_folder, val_case_i + '_final_pred.npy')
+                save_img_path = os.path.join(case_plots_folder, val_case_i + '_max_area.png')
+                save_animation_path = os.path.join(case_plots_folder, val_case_i + '_animation.gif')
+                save_np_path = os.path.join(case_plots_folder, val_case_i + '_final_pred.npy')
 
-            save_biggest_area_img(input_np_channel, gt_final_vol, final_pred_vol, max_slice, save_img_path)
-            save_animation(input_np_channel, gt_final_vol, final_pred_vol, save_animation_path)
-            np.save(save_np_path, final_pred_vol)
+                save_biggest_area_img(input_np_channel, gt_final_vol, final_pred_vol, max_slice, save_img_path)
+                save_animation(input_np_channel, gt_final_vol, final_pred_vol, save_animation_path)
+                np.save(save_np_path, final_pred_vol)
 
-            pbar.set_description(f"Case: {val_case_i} with Max area: {max_area}")
-            # print("****************")
-            # time.sleep(60)
-            pbar.update(1)
+                # print("Save animation path:", save_animation_path)
+                # print("Save image path:", save_img_path)
+                # print("Save numpy path:", save_np_path)
+
+                pbar.set_description(f"Case: {val_case_i} with Max area: {max_area}")
+                # print("****************")
+                # time.sleep(60)
+                pbar.update(1)
+
+    else:
+        plots_folder = os.path.join("/app/data/output", 'inference_plots')
+        # Extract the tensor and label paths for the i-th case in the validation set
+        data_path = os.path.join(parent_dir, 'data', 'brats2017_seg')
+        # case number should be between 1 and 484 and translated to BRATS_xxx format
+        case_name = f"BRATS_{case_number:03d}"
+
+        # Load the original data for the four modalities
+        modal_names = ['0000', '0001', '0002', '0003']
+        input_np = []
+        for modal in modal_names:
+            modal_path = os.path.join(model_config["dataset_parameters"]["brats_raw_root"], "train", "imagesTr", f"{case_name}_{modal}.nii.gz")
+            modal_full = nib.load(modal_path).get_fdata()
+            modal_crop = modal_full[56:184, 56:184, 13:141]
+            modal_crop = (modal_crop - modal_crop.min()) / (modal_crop.max() - modal_crop.min())
+            input_np.append(modal_crop.astype(np.float32))
+        input_np = np.stack(input_np)
+
+        # Load the original label
+        label_path = os.path.join(model_config["dataset_parameters"]["brats_raw_root"], 'train', 'labelsTr',
+                                f"{case_name}.nii.gz")
+        label_img = nib.load(label_path)
+        label_data = label_img.get_fdata()[56:184, 56:184, 13:141]
+
+        # Convert the label to one-hot encoding
+        label_1 = (label_data == 1).astype(np.float32)  # edema
+        label_2 = (label_data == 2).astype(np.float32)  # non-enhancing tumor
+        label_3 = (label_data == 3).astype(np.float32)  # enhancing tumour
+
+        label_np = np.stack([label_1, label_2, label_3])
+
+        # Convert the numpy arrays to tensors and move them to the device
+        input_tensor = torch.from_numpy(input_np).to(device)
+        label_tensor = torch.from_numpy(label_np).to(device)
+
+        # Add a batch dimension to the input and label tensors for the model
+        input_tensor = input_tensor.unsqueeze(0)
+        label_tensor = label_tensor.unsqueeze(0)
+
+        # ---------------------------- #
+
+        # Define the post-transforms for the predictions
+        post_transform = Compose([
+            Activations(sigmoid=True),  # Sigmoid activation to the model output
+            AsDiscrete(argmax=False, threshold=0.5)  # Thresholding the output]
+        ]
+        )
+
+        # Get the predicted segmentation using sliding window inference from MONAI
+        logits = sliding_window_inference(
+            inputs=input_tensor,
+            roi_size=[128, 128, 128],
+            sw_batch_size=4,
+            predictor=model,
+            overlap=0.5,
+        )
+
+        decollated_preds = decollate_batch(logits)  # Decollate the batch of predictions
+
+        # Convert the predictions to the final output format
+        output_convert = [
+            post_transform(val_pred_tensor) for val_pred_tensor in decollated_preds
+        ]
+
+        # Get the final prediction volume
+        final_pred = output_convert[0]
+        final_pred_np = final_pred.cpu().numpy()  # Convert the tensor to numpy array
+        final_pred_np = final_pred_np > 0.5  # Threshold the output to get the final segmentation (0.5 threshold because of the sigmoid activation)
+
+        # #Label 0: Background
+        # #Label 1: Non-enhancing tumor (NCR/NET)
+        # #Label 2: WT (whole tumor) = ET (enhancing tumor) + NCR/NET (non-enhancing tumor)
+        # #Label 3: ET (enhancing tumor)
+
+        class1_vol, class2_vol, class3_vol = final_pred_np  # Split the final prediction volume into the 3 classes
+
+        # print(np.sum(class1_vol))
+        # print(np.sum(class2_vol))
+        # print(np.sum(class3_vol))
+
+        # Combine the 3 classes to get the final prediction volume (0: background, 1: non-enhancing, 2: whole tumor, 3: enhancing tumor)
+        final_pred_vol = np.zeros_like(class1_vol)
+        final_pred_vol = np.sum([class1_vol, class2_vol, class3_vol], axis=0)
+
+        # ------- Fused the predictions of 4 channels to obtain a 3D segmentation volume --------
+        final_pred_vol = final_pred_vol.astype(np.uint8)
+        # -----------------------------#
+
+        # Label volume creation)
+        gt_final_vol = np.zeros_like(final_pred_vol)
+
+        label1_np, label2_np, label3_np = label_np  # Split the label volume into the 3 classes
+
+        # -------- Fused the results of 4 channels of labels to obtain 3D segmentation volume ----------
+        gt_final_vol[label1_np > 0.5] = 1  # edema
+        gt_final_vol[label2_np > 0.5] = 2  # non-enhancing tumor
+        gt_final_vol[label3_np > 0.5] = 3  # enhancing tumour
+
+        # -----------------------------#
+
+        # Extract a channel from the input tensor for visualization
+        input_np_channel = input_np[0]  # Directly use the data from the first channel for visualization.
+
+        # -----------------------------#
+
+        case_plots_folder = os.path.join(plots_folder, case_name)
+        print("Case plots folder:", case_plots_folder)
+        if not os.path.exists(case_plots_folder):
+            os.makedirs(case_plots_folder)
+
+        # -----------------------------#
+
+        max_slice, max_area = get_max_slice(final_pred_vol)
+
+        save_img_path = os.path.join(case_plots_folder, case_name + '_max_area.png')
+        save_animation_path = os.path.join(case_plots_folder, case_name + '_animation.gif')
+        save_np_path = os.path.join(case_plots_folder, case_name + '_final_pred.npy')
+
+        print("Save animation path:", save_animation_path)
+        print("Save image path:", save_img_path)
+        print("Save numpy path:", save_np_path)
+
+        save_biggest_area_img(input_np_channel, gt_final_vol, final_pred_vol, max_slice, save_img_path)
+        save_animation(input_np_channel, gt_final_vol, final_pred_vol, save_animation_path)
+        np.save(save_np_path, final_pred_vol)
+
