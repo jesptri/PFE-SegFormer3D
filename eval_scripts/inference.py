@@ -199,6 +199,12 @@ if __name__ == "__main__":
         default=1,
         help="Case number of the patient to perform inference on (1-484).",
     )
+    parser.add_argument(
+        "--weights",
+        type=str,
+        default=None,
+        help="Path to model weights file (.pth). If not provided, uses default weights.",
+    )
     args = parser.parse_args()
     case_number = args.case_number
     inf_all = args.inf_all
@@ -217,10 +223,15 @@ if __name__ == "__main__":
         parent_dir,
         "experiments/brats_2017/template_experiment/config.yaml"
     )
-    weights_path = os.path.join(
-        parent_dir,
-        "best_segformer3d_brats_performance.pth"
-    )
+    
+    # Use provided weights path or default
+    if args.weights:
+        weights_path = args.weights
+    else:
+        weights_path = os.path.join(
+            parent_dir,
+            "best_segformer3d_brats_performance.pth"
+        )
     # weights_path = os.path.join(this_file_dir, 'model_checkpoints', 'best_dice_checkpoint', 'pytorch_model.bin')
 
     # Model configuration

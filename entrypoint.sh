@@ -13,13 +13,15 @@ DO_INFERENCE=false
 declare -i TYPE_INFERENCE
 DO_EVALUATION=false
 declare -i TYPE_EVALUATION
+MODEL_WEIGHTS=""
 
-while getopts "pti:e:h" opt; do
+while getopts "pti:e:w:h" opt; do
   case "$opt" in
     p) DO_PREPROCESSING=true ;;
     t) DO_TRAINING=true ;;
     i) DO_INFERENCE=true ; TYPE_INFERENCE=$OPTARG ;;
     e) DO_EVALUATION=true ; TYPE_EVALUATION=$OPTARG ;;
+    w) MODEL_WEIGHTS=$OPTARG ;;
     h) SHOW_HELP=true;;
     \?) echo "*-* Invalid option: -$OPTARG" ;;
   esac
@@ -31,6 +33,7 @@ if $SHOW_HELP; then
   echo "-t [Training] : allows to run the training scripts."
   echo "-i [Inference] : allows to run the inference scripts."
   echo "-e [Evaluation] : allows to run the evaluation scripts."
+  echo "-w [Weights] : path to model weights file (.pth). Optional."
   echo "-h [Help] : shows this help message."
   echo "*-* End of the helper !"
   exit 0
@@ -81,25 +84,42 @@ if $DO_TRAINING; then
 fi
 
 if $DO_INFERENCE; then
-  echo "*-* Launching the inference... (only pre-trained model for now)"
+  echo "*-* Launching the inference..."
+  INFERENCE_CMD="python3 $ROOT/eval_scripts/inference.py"
+  
   if [ "$TYPE_INFERENCE" -eq -1 ]; then
     echo "*-* Type 1 inference: on all validation cases."
-    python3 $ROOT/eval_scripts/inference.py --inf_all
+    INFERENCE_CMD="$INFERENCE_CMD --inf_all"
   else
     echo "*-* Type 2 inference: on a specific case."
-    python3 $ROOT/eval_scripts/inference.py --case_number $TYPE_INFERENCE
+    INFERENCE_CMD="$INFERENCE_CMD --case_number $TYPE_INFERENCE"
   fi
+  
+  if [ -n "$MODEL_WEIGHTS" ]; then
+    echo "*-* Using model weights: $MODEL_WEIGHTS"
+    INFERENCE_CMD="$INFERENCE_CMD --weights $MODEL_WEIGHTS"
+  fi
+  
+  eval $INFERENCE_CMD
 fi
 
 if $DO_EVALUATION; then
-  echo "*-* Launching the evaluation... (only pre-trained model for now)"
+  echo "*-* Launching the evaluation..."
+  EVALUATION_CMD="python3 $ROOT/eval_scripts/evaluate.py"
+  
   if [ "$TYPE_EVALUATION" -eq -1 ]; then
     echo "*-* Type 1 evaluation: on all validation and training cases."
-    python3 $ROOT/eval_scripts/evaluate.py --eval_all
+    EVALUATION_CMD="$EVALUATION_CMD --eval_all"
   else
     echo "*-* Type 2 evaluation: on a specific case."
-    python3 $ROOT/eval_scripts/evaluate.py --case_number $TYPE_EVALUATION
+    EVALUATION_CMD="$EVALUATION_CMD --case_number $TYPE_EVALUATION"
   fi
-   
+  
+  if [ -n "$MODEL_WEIGHTS" ]; then
+    echo "*-* Using model weights: $MODEL_WEIGHTS"
+    EVALUATION_CMD="$EVALUATION_CMD --weights $MODEL_WEIGHTS"
+  fi
+  
+  eval $EVALUATION_CMD
 fi
 echo "*-* End of the entrypoint"
