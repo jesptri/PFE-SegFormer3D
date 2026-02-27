@@ -100,11 +100,32 @@ def launch_experiment(config_path) -> Dict:
         ],
     )
 
+    # ---- DEBUG START ----
+    accelerator.print("=" * 60)
+    accelerator.print(f"[DEBUG] Accelerator device     : {accelerator.device}")
+    accelerator.print(f"[DEBUG] Num processes           : {accelerator.num_processes}")
+    accelerator.print(f"[DEBUG] Distributed type        : {accelerator.distributed_type}")
+    accelerator.print(f"[DEBUG] torch.cuda.is_available : {torch.cuda.is_available()}")
+    accelerator.print(f"[DEBUG] torch.cuda.device_count : {torch.cuda.device_count()}")
+    if torch.cuda.is_available():
+        accelerator.print(f"[DEBUG] GPU name               : {torch.cuda.get_device_name(0)}")
+    else:
+        accelerator.print("[WARNING] CUDA not available — training will run on CPU!")
+    accelerator.print("=" * 60)
+    # ---- DEBUG END ----
+
+
+
     # display experiment info
     display_info(config, accelerator, trainset, valset, model)
 
     # convert all components to accelerate
     model = accelerator.prepare_model(model=model)
+    
+    # ---- DEBUG START ----
+    accelerator.print(f"[DEBUG] Model device after prepare: {next(model.parameters()).device}")
+    # ---- DEBUG END ----
+
     optimizer = accelerator.prepare_optimizer(optimizer=optimizer)
     trainloader = accelerator.prepare_data_loader(data_loader=trainloader)
     valloader = accelerator.prepare_data_loader(data_loader=valloader)

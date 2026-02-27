@@ -128,6 +128,16 @@ class Segmentation_Trainer:
                     raw_data["image"],
                     raw_data["label"],
                 )
+
+                # ---- FIX + DEBUG ----
+                data = data.to(self.accelerator.device)
+                labels = labels.to(self.accelerator.device)
+                if self.current_epoch == 0 and index == 0:  # only print once
+                    self.accelerator.print(f"[DEBUG] Train data device : {data.device}")
+                    self.accelerator.print(f"[DEBUG] Train label device: {labels.device}")
+                    self.accelerator.print(f"[DEBUG] Model device      : {next(self.model.parameters()).device}")
+                # ---- END ----
+
                 # print("data ", data.shape, "label ", labels.shape)
 
                 # zero out existing gradients (set_to_none=True for better performance)
@@ -199,6 +209,14 @@ class Segmentation_Trainer:
                     raw_data["image"],
                     raw_data["label"],
                 )
+
+                # ---- FIX + DEBUG ----
+                data = data.to(self.accelerator.device)
+                labels = labels.to(self.accelerator.device)
+                if self.current_epoch == 0 and index == 0:
+                    self.accelerator.print(f"[DEBUG] Val data device  : {data.device}")
+                # ---- END ----
+                
                 # forward pass
                 if use_ema:
                     predicted = self.ema_model.forward(data)

@@ -1,6 +1,12 @@
 #!/bin/bash
 set -e
 
+echo "=== GPU ENVIRONMENT CHECK ==="
+nvidia-smi || echo "WARNING: nvidia-smi failed — GPU not visible in container!"
+echo "CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-not set}"
+echo "============================="
+
+
 # Silence warnings
 export PYTHONWARNINGS="ignore::UserWarning"
 export PYTHONPATH="$PYTHONPATH:$(pwd)"

@@ -5,6 +5,13 @@ services:
       dockerfile: Dockerfile
     container_name: pie-sxs
     shm_size: "8g"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
     env_file:
       - .env
     volumes:
