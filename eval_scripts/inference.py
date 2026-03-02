@@ -128,7 +128,7 @@ def save_biggest_area_img(vol_og, vol_gt, vol_pred, max_slice, save_path):
     plt.close(fig)
 
 
-def save_animation(vol_og, vol_gt, vol_pred, save_path):
+def save_animation(vol_og, vol_gt, vol_pred, save_path, fps=15):
     '''
     Save the 3D volume as an animation (GIF).
     ------------------------------------------------
@@ -138,6 +138,7 @@ def save_animation(vol_og, vol_gt, vol_pred, save_path):
     - vol_gt: 3D numpy array: Ground truth segmentation volume
     - vol_pred: 3D numpy array: Predicted segmentation volume
     - save_path: str: Path to save the animation
+    - fps: int: Frames per second for the animation (default: 15)
     -----------------------------------------------
     Returns:
     - None
@@ -150,8 +151,8 @@ def save_animation(vol_og, vol_gt, vol_pred, save_path):
     # Get the number of slices (assumes all volumes have the same shape)
     _, _, num_slices = vol_og.shape
 
-    # Create a figure and axes
-    fig, axes = plt.subplots(1, 3, figsize=(10, 4))
+    # Create a figure and axes with lower DPI for faster generation
+    fig, axes = plt.subplots(1, 3, figsize=(10, 4), dpi=80)
 
     # Function to update the figure for each frame (slice)
     def update(i):
@@ -159,17 +160,17 @@ def save_animation(vol_og, vol_gt, vol_pred, save_path):
             ax.clear()  # Clear the previous frame
 
         # Display the original volume (grayscale)
-        axes[0].imshow(vol_og[:, :, i], cmap='gray')
+        axes[0].imshow(vol_og[:, :, i], cmap='gray', interpolation='bilinear')
         axes[0].set_title('Original Volume')
 
         # Display the ground truth segmentation with the custom colormap and alpha 0.5
-        axes[1].imshow(vol_og[:, :, i], cmap='gray')
-        axes[1].imshow(vol_gt[:, :, i], cmap=cmap, alpha=0.5)
+        axes[1].imshow(vol_og[:, :, i], cmap='gray', interpolation='bilinear')
+        axes[1].imshow(vol_gt[:, :, i], cmap=cmap, alpha=0.5, interpolation='nearest')
         axes[1].set_title('Ground Truth')
 
         # Display the predicted segmentation with the custom colormap and alpha 0.5
-        axes[2].imshow(vol_og[:, :, i], cmap='gray')
-        axes[2].imshow(vol_pred[:, :, i], cmap=cmap, alpha=0.5)
+        axes[2].imshow(vol_og[:, :, i], cmap='gray', interpolation='bilinear')
+        axes[2].imshow(vol_pred[:, :, i], cmap=cmap, alpha=0.5, interpolation='nearest')
         axes[2].set_title('Predicted')
 
         axes[0].axis('off')
@@ -177,10 +178,12 @@ def save_animation(vol_og, vol_gt, vol_pred, save_path):
         axes[2].axis('off')
 
     # Create the animation
-    ani = animation.FuncAnimation(fig, update, frames=num_slices, repeat=True)
+    ani = animation.FuncAnimation(fig, update, frames=num_slices, repeat=True, cache_frame_data=False)
 
-    # Save the animation as a GIF
-    ani.save(save_path, writer='pillow', fps=10)
+    # Save the animation as a GIF with optimized settings
+    from matplotlib.animation import PillowWriter
+    writer = PillowWriter(fps=fps, metadata=dict(artist='SegFormer3D'), bitrate=1800)
+    ani.save(save_path, writer=writer)
 
     plt.close(fig)
 
@@ -205,9 +208,22 @@ if __name__ == "__main__":
         default=None,
         help="Path to model weights file (.pth). If not provided, uses default weights.",
     )
+    parser.add_argument(
+        "--generate_animation",
+        action="store_true",
+        help="If set, generate GIF animations (slower but provides visualizations).",
+    )
+    parser.add_argument(
+        "--animation_fps",
+        type=int,
+        default=15,
+        help="Frames per second for GIF animations (default: 15, higher = faster animation).",
+    )
     args = parser.parse_args()
     case_number = args.case_number
     inf_all = args.inf_all
+    generate_animation = args.generate_animation
+    animation_fps = args.animation_fps
     # Device setup
     # device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -395,7 +411,8 @@ if __name__ == "__main__":
                 save_np_path = os.path.join(case_plots_folder, val_case_i + '_final_pred.npy')
 
                 save_biggest_area_img(input_np_channel, gt_final_vol, final_pred_vol, max_slice, save_img_path)
-                save_animation(input_np_channel, gt_final_vol, final_pred_vol, save_animation_path)
+                if generate_animation:
+                    save_animation(input_np_channel, gt_final_vol, final_pred_vol, save_animation_path, fps=animation_fps)
                 np.save(save_np_path, final_pred_vol)
 
                 # print("Save animation path:", save_animation_path)
@@ -535,11 +552,13 @@ if __name__ == "__main__":
         save_animation_path = os.path.join(case_plots_folder, case_name + '_animation.gif')
         save_np_path = os.path.join(case_plots_folder, case_name + '_final_pred.npy')
 
-        print("Save animation path:", save_animation_path)
+        if generate_animation:
+            print("Save animation path:", save_animation_path)
         print("Save image path:", save_img_path)
         print("Save numpy path:", save_np_path)
 
         save_biggest_area_img(input_np_channel, gt_final_vol, final_pred_vol, max_slice, save_img_path)
-        save_animation(input_np_channel, gt_final_vol, final_pred_vol, save_animation_path)
+        if generate_animation:
+            save_animation(input_np_channel, gt_final_vol, final_pred_vol, save_animation_path, fps=animation_fps)
         np.save(save_np_path, final_pred_vol)
 

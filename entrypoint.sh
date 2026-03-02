@@ -22,13 +22,17 @@ declare -i TYPE_INFERENCE
 DO_EVALUATION=false
 declare -i TYPE_EVALUATION
 MODEL_WEIGHTS=-2
-while getopts "pti:e:w:h" opt; do
+GENERATE_ANIMATION=false
+ANIMATION_FPS=15
+while getopts "pti:e:w:gf:h" opt; do
   case "$opt" in
     p) DO_PREPROCESSING=true ;;
     t) DO_TRAINING=true ;;
     i) DO_INFERENCE=true ; TYPE_INFERENCE=$OPTARG ;;
     e) DO_EVALUATION=true ; TYPE_EVALUATION=$OPTARG ;;
     w) MODEL_WEIGHTS=$OPTARG ;;
+    g) GENERATE_ANIMATION=true ;;
+    f) ANIMATION_FPS=$OPTARG ;;
     h) SHOW_HELP=true;;
     \?) echo "*-* Invalid option: -$OPTARG" ;;
   esac
@@ -37,9 +41,11 @@ if $SHOW_HELP; then
   echo "*-* Entrypoint helper for this Segformer 3D implementation"
   echo "-p [Preprocessing] : allows to run the preprocessing scripts."
   echo "-t [Training] : allows to run the training scripts."
-  echo "-i [Inference] : allows to run the inference scripts."
-  echo "-e [Evaluation] : allows to run the evaluation scripts."
+  echo "-i [Inference] : allows to run the inference scripts. Use -1 for all cases or case number."
+  echo "-e [Evaluation] : allows to run the evaluation scripts. Use -1 for all cases or case number."
   echo "-w [Weights] : allows to select an experiment as a model. Optional [latest | name of the experiment]."
+  echo "-g [Generate Animation] : generate GIF animations during inference (slower). Optional, disabled by default."
+  echo "-f [Animation FPS] : set frames per second for GIF animations (default: 15). Optional."
   echo "-h [Help] : shows this help message."
   echo "*-* End of the helper !"
   exit 0
@@ -104,6 +110,13 @@ if $DO_INFERENCE; then
   else
     echo "*-* Type 2 inference: on a specific case."
     INFERENCE_CMD="$INFERENCE_CMD --case_number $TYPE_INFERENCE --weights $MODEL_WEIGHTS"
+  fi
+  
+  if $GENERATE_ANIMATION; then
+    echo "*-* Generating GIF animations at $ANIMATION_FPS fps."
+    INFERENCE_CMD="$INFERENCE_CMD --generate_animation --animation_fps $ANIMATION_FPS"
+  else
+    echo "*-* Skipping GIF animation generation (faster mode)."
   fi
   
   eval $INFERENCE_CMD
