@@ -306,8 +306,8 @@ if __name__ == "__main__":
                     continue
 
                 # Add a batch dimension to the input and label tensors for the model
-                input_tensor = input_tensor.unsqueeze(0)
-                label_tensor = label_tensor.unsqueeze(0)
+                input_tensor = input_tensor.unsqueeze(0).to(device)
+                label_tensor = label_tensor.unsqueeze(0).to(device)
 
                 # ---------------------------- #
 
@@ -446,8 +446,8 @@ if __name__ == "__main__":
             raise
 
         # Add a batch dimension to the input and label tensors for the model
-        input_tensor = input_tensor.unsqueeze(0)
-        label_tensor = label_tensor.unsqueeze(0)
+        input_tensor = input_tensor.unsqueeze(0).to(device)
+        label_tensor = label_tensor.unsqueeze(0).to(device)
 
         # ---------------------------- #
 

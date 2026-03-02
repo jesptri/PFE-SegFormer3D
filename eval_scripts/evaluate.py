@@ -239,8 +239,8 @@ if __name__ == "__main__":
 
 
                 # Convert to tensors and add batch dimension
-                input_tensor = data["image"].unsqueeze(0)
-                label_tensor = data["label"].unsqueeze(0)
+                input_tensor = data["image"].unsqueeze(0).to(device)
+                label_tensor = data["label"].unsqueeze(0).to(device)
                 
                 # Evaluate
                 dice_scores = evaluator.evaluate_case(
@@ -471,8 +471,8 @@ if __name__ == "__main__":
 
 
         # Convert to tensors and add batch dimension
-        input_tensor = data["image"].unsqueeze(0)
-        label_tensor = data["label"].unsqueeze(0)
+        input_tensor = data["image"].unsqueeze(0).to(device)
+        label_tensor = data["label"].unsqueeze(0).to(device)
         
         # Evaluate
         dice_scores = evaluator.evaluate_case(
