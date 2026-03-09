@@ -47,5 +47,10 @@ def build_dataloader(
         num_workers=dataloader_args["num_workers"],
         drop_last=dataloader_args["drop_last"],
         pin_memory=True,
+        prefetch_factor=dataloader_args.get("prefetch_factor", 2),       # FIX
+        persistent_workers=dataloader_args.get("persistent_workers", True), # FIX
     )
+    print(f"[DEBUG] DataLoader built: num_workers={dataloader_args['num_workers']}, "
+        f"prefetch_factor={dataloader_args.get('prefetch_factor', 2)}, "
+        f"persistent_workers={dataloader_args.get('persistent_workers', True)}")
     return dataloader
