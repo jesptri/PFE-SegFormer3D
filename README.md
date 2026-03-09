@@ -40,7 +40,7 @@ is only a matter of seconds.
 
 Now, your image is built and you can use it for different purposes. The base command
 is `docker compose run segformer`. But as it is, it will do nothing. You have to
-pass arguments. Here is the full command `docker compose run segformer -h -p -t -i <number> -e <number> -w <lateset|name>`.
+pass arguments. Here is the full command `docker compose run segformer -h -p -t -i <number> -e <number> -w <latest|name> -g -f <fps>`.
 - `-h` : Using this option will display how the other options work.
 - `-p` : Using this option will launch the preprocessing of your data.
 - `-t` : Using this option will start the training of a new model on your data. 
@@ -53,7 +53,9 @@ positive integer, the model will use the volume associated with this number.
 - `-w <latest|name>` : [OPTIONAL] Using this option will select an experiment folder as a model
 loader. If not given, it will select the official Segformer3D model weights. If `latest` is given,
 it will select the last experiment folder created automatically. If an experiment name is given,
-it will use it as model weights.<br>
+it will use it as model weights.
+- `-g` : [OPTIONAL] Generate GIF animations during inference. By default, animations are skipped for faster processing.
+- `-f <fps>` : [OPTIONAL] Set frames per second for GIF animations (default: 15). Higher values create faster animations. Only used with `-g`.<br>
 Here are some examples of usage : 
 -  `docker compose run segformer -h` : Show the help message.
 -  `docker compose run segformer -p -t` : Launch the preprocessing and then start training 
@@ -62,6 +64,9 @@ the model.
 the data.
 -  `docker compose run segformer -i 1 -w latest` : Infer the model saved in the last experiment
 on the first volume.
+-  `docker compose run segformer -i -1` : Run inference on all validation cases without generating GIF animations (fast, default behavior).
+-  `docker compose run segformer -i -1 -g -f 20` : Run inference on all cases with GIF animations at 20 fps.
+-  `docker compose run segformer -i 42 -g -w latest` : Run inference on case 42 using the latest trained model, generating animations.
 
 # IV - Research Paper
 
